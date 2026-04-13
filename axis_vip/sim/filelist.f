@@ -1,0 +1,20 @@
+// Interface (compiled separately, not in package)
+../src/axis_if.sv
+
+// Package (includes all class files)
+../src/axis_pkg.sv
+
+// Tests (included after package)
+../tests/axis_base_test.sv
+../tests/axis_sanity_test.sv
+../tests/axis_backpressure_test.sv
+../tests/axis_bandwidth_test.sv
+../tests/axis_reset_test.sv
+../tests/axis_phase_jump_test.sv
+../tests/axis_full_regression_test.sv
+
+// DUT
+../tb/axis_dummy_dut.sv
+
+// Testbench top
+../tb/tb_top.sv
