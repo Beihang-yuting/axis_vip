@@ -2,11 +2,14 @@ class axis_phase_controller extends uvm_component;
 
     `uvm_component_utils(axis_phase_controller)
 
+    virtual axis_if vif;
     axis_config cfg;
     axis_reset_handler rst_handler;
 
     int unsigned drain_timeout = 1000;
     axis_agent agents[$];
+
+    protected bit phase_jump_pending = 0;
 
     function new(string name, uvm_component parent);
         super.new(name, parent);
@@ -16,7 +19,21 @@ class axis_phase_controller extends uvm_component;
         super.build_phase(phase);
         if (!uvm_config_db#(axis_config)::get(this, "", "cfg", cfg))
             `uvm_fatal("NOCFG", "axis_config not found in config_db")
+        if (!uvm_config_db#(virtual axis_if)::get(this, "", "vif", vif))
+            `uvm_fatal("NOVIF", "Virtual interface not found in config_db")
     endfunction
+
+    task run_phase(uvm_phase phase);
+        // Phase jump recovery: resume sequencers after jump
+        if (phase_jump_pending) begin
+            phase_jump_pending = 0;
+            foreach (agents[i]) begin
+                if (agents[i].sqr != null)
+                    agents[i].sqr.set_reset_active(0);
+            end
+            `uvm_info(get_type_name(), "Phase jump recovery: sequencers resumed", UVM_LOW)
+        end
+    endtask
 
     task request_phase_jump(uvm_phase current_phase, uvm_phase target_phase);
         if (rst_handler != null && rst_handler.is_in_reset) begin
@@ -35,14 +52,9 @@ class axis_phase_controller extends uvm_component;
 
         drain_in_flight();
 
+        phase_jump_pending = 1;
         current_phase.jump(target_phase);
-
-        foreach (agents[i]) begin
-            if (agents[i].sqr != null)
-                agents[i].sqr.set_reset_active(0);
-        end
-
-        `uvm_info(get_type_name(), "Phase jump complete", UVM_LOW)
+        // Code after jump() will NOT execute — recovery happens in run_phase
     endtask
 
     protected task drain_in_flight();
@@ -60,7 +72,7 @@ class axis_phase_controller extends uvm_component;
                 end
             end
             if (!all_drained) begin
-                #1;
+                @(posedge vif.aclk);
                 timeout_count++;
             end
         end
