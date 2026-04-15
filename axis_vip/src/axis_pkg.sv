@@ -18,6 +18,10 @@ package axis_pkg;
     `include "axis_reset_handler.sv"
     `include "axis_phase_controller.sv"
     `include "axis_protocol_checker.sv"
+    `uvm_analysis_imp_decl(_master)
+    `uvm_analysis_imp_decl(_slave)
+    `uvm_analysis_imp_decl(_master_beat)
+    `uvm_analysis_imp_decl(_slave_beat)
     `include "axis_scoreboard.sv"
     `include "axis_coverage_collector.sv"
     `include "axis_bandwidth_checker.sv"
