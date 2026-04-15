@@ -48,17 +48,23 @@ class axis_env extends uvm_env;
     function void connect_phase(uvm_phase phase);
         super.connect_phase(phase);
 
+        // Scoreboard: packet-level comparison
         master_agent.mon.packet_ap.connect(sb.master_export);
         slave_agent.mon.packet_ap.connect(sb.slave_export);
 
-        master_agent.mon.beat_ap.connect(cov.analysis_export);
-        master_agent.mon.beat_ap.connect(bw_checker.analysis_export);
+        // Coverage: dual-port beat-level from both agents
+        master_agent.mon.beat_ap.connect(cov.master_beat_export);
+        slave_agent.mon.beat_ap.connect(cov.slave_beat_export);
 
+        // Bandwidth checker: master-side only
+        master_agent.mon.beat_ap.connect(bw_checker.analysis_export);
         bw_checker.cov_collector = cov;
 
+        // Reset handler: agent list
         rst_handler.agents.push_back(master_agent);
         rst_handler.agents.push_back(slave_agent);
 
+        // Reset listener events
         master_agent.rst_listener.reset_asserted_evt   = rst_handler.reset_asserted_evt;
         master_agent.rst_listener.reset_active_evt     = rst_handler.reset_active_evt;
         master_agent.rst_listener.reset_deasserted_evt = rst_handler.reset_deasserted_evt;
@@ -66,6 +72,7 @@ class axis_env extends uvm_env;
         slave_agent.rst_listener.reset_active_evt      = rst_handler.reset_active_evt;
         slave_agent.rst_listener.reset_deasserted_evt  = rst_handler.reset_deasserted_evt;
 
+        // Phase controller: agent list and reset handler
         phase_ctrl.agents.push_back(master_agent);
         phase_ctrl.agents.push_back(slave_agent);
         phase_ctrl.rst_handler = rst_handler;

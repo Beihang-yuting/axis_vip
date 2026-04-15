@@ -71,12 +71,19 @@ module tb_top;
         .m_tuser(slave_if.tuser)
     );
 
+    // Protocol checker SVA bindings
+    axis_protocol_checker_sva master_proto_chk (
+        .aif(master_if)
+    );
+
     initial begin
         uvm_config_db#(virtual axis_if)::set(null, "uvm_test_top.env.master_agent*", "vif", master_if);
         uvm_config_db#(virtual axis_if)::set(null, "uvm_test_top.env.slave_agent*",  "vif", slave_if);
         uvm_config_db#(virtual axis_if)::set(null, "uvm_test_top.env.rst_handler",   "vif", master_if);
         uvm_config_db#(virtual axis_if)::set(null, "uvm_test_top.env.proto_checker", "vif", master_if);
         uvm_config_db#(virtual axis_if)::set(null, "uvm_test_top.env.bw_checker",    "vif", master_if);
+        uvm_config_db#(virtual axis_if)::set(null, "uvm_test_top.env.phase_ctrl",   "vif", master_if);
+        uvm_config_db#(virtual axis_if)::set(null, "uvm_test_top.env.cov",          "vif", master_if);
     end
 
     initial begin
