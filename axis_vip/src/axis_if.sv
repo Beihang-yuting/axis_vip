@@ -46,4 +46,29 @@ interface axis_if #(
     modport slave_mp   (clocking slave_cb,   input aclk, aresetn);
     modport monitor_mp (clocking monitor_cb, input aclk, aresetn);
 
+    // Protocol checker control signals (set by UVM axis_protocol_checker)
+    logic        chk_en_tvalid_stability;
+    logic        chk_en_tdata_stability;
+    logic        chk_en_tlast_integrity;
+    logic        chk_en_tid_consistency;
+    logic        chk_en_tdest_consistency;
+    logic        chk_en_tkeep_tstrb_relation;
+    logic        chk_en_reset_signal_check;
+    logic        chk_en_x_z_check;
+    logic        chk_en_handshake_timeout;
+    int unsigned chk_handshake_timeout_cycles;
+
+    initial begin
+        chk_en_tvalid_stability     = 0;
+        chk_en_tdata_stability      = 0;
+        chk_en_tlast_integrity      = 0;
+        chk_en_tid_consistency      = 0;
+        chk_en_tdest_consistency    = 0;
+        chk_en_tkeep_tstrb_relation = 0;
+        chk_en_reset_signal_check   = 0;
+        chk_en_x_z_check           = 0;
+        chk_en_handshake_timeout    = 0;
+        chk_handshake_timeout_cycles = 1000;
+    end
+
 endinterface
