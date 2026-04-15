@@ -89,3 +89,16 @@ typedef enum bit [2:0] {
     AXIS_SEQ_STATE_IDLE         = 3'b011,
     AXIS_SEQ_STATE_DONE         = 3'b100
 } axis_seq_state_e;
+
+// Packet boundary mode (for HAS_TLAST=0 scenarios)
+typedef enum bit [1:0] {
+    PKT_BOUNDARY_TLAST     = 2'b00,
+    PKT_BOUNDARY_TIMEOUT   = 2'b01,
+    PKT_BOUNDARY_FIXED_LEN = 2'b10
+} axis_pkt_boundary_mode_e;
+
+// Slave driver mode
+typedef enum bit {
+    SLAVE_AUTO       = 1'b0,
+    SLAVE_SEQ_DRIVEN = 1'b1
+} axis_slave_drive_mode_e;

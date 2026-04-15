@@ -48,6 +48,14 @@ class axis_config extends uvm_object;
     axis_reset_sync_mode_e  reset_sync_mode = AXIS_RESET_SYNC;
     bit                     hot_reset_enable = 0;
 
+    // Packet boundary configuration (for HAS_TLAST=0)
+    axis_pkt_boundary_mode_e pkt_boundary_mode       = PKT_BOUNDARY_TLAST;
+    int unsigned             pkt_boundary_timeout_cycles = 100;
+    int unsigned             pkt_boundary_fixed_length   = 64;
+
+    // Slave driver mode
+    axis_slave_drive_mode_e  slave_drive_mode = SLAVE_AUTO;
+
     // Protocol checker config
     axis_protocol_checker_config checker_cfg;
 
