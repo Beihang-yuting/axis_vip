@@ -1,3 +1,7 @@
+import uvm_pkg::*;
+`include "uvm_macros.svh"
+import axis_pkg::*;
+
 class axis_base_test extends uvm_test;
 
     `uvm_component_utils(axis_base_test)

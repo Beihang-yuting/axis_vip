@@ -1,6 +1,9 @@
 // Interface (compiled separately, not in package)
 ../src/axis_if.sv
 
+// SVA protocol checker (module, not in package)
+../src/axis_protocol_checker_sva.sv
+
 // Package (includes all class files)
 ../src/axis_pkg.sv
 

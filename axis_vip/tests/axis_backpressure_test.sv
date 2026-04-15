@@ -1,3 +1,7 @@
+import uvm_pkg::*;
+`include "uvm_macros.svh"
+import axis_pkg::*;
+
 class axis_backpressure_test extends axis_base_test;
 
     `uvm_component_utils(axis_backpressure_test)

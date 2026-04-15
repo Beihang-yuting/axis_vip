@@ -83,10 +83,15 @@ class axis_bandwidth_checker extends uvm_subscriber #(axis_transfer);
     endfunction
 
     function void report_phase(uvm_phase phase);
+        real total_bw;
+        real min_bw;
+        real max_bw;
+
         if (!cfg.bw_check_enable || bw_history.size() == 0) return;
-        real total_bw = 0;
-        real min_bw = bw_history[0];
-        real max_bw = bw_history[0];
+
+        total_bw = 0;
+        min_bw = bw_history[0];
+        max_bw = bw_history[0];
         foreach (bw_history[i]) begin
             total_bw += bw_history[i];
             if (bw_history[i] < min_bw) min_bw = bw_history[i];
