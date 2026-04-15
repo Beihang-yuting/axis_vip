@@ -35,11 +35,17 @@ class axis_reset_handler extends uvm_component;
             else
                 wait_for_async_reset_assert();
             handle_reset_assert();
+            @(posedge vif.aclk);
+            reset_asserted_evt.reset();
+            reset_active_evt.reset();
+
             if (cfg.reset_sync_mode == AXIS_RESET_SYNC)
                 wait_for_sync_reset_deassert();
             else
                 wait_for_async_reset_deassert();
             handle_reset_deassert();
+            @(posedge vif.aclk);
+            reset_deasserted_evt.reset();
         end
     endtask
 

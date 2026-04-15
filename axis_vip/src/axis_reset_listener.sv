@@ -25,7 +25,7 @@ class axis_reset_listener extends uvm_component;
 
     task run_phase(uvm_phase phase);
         forever begin
-            reset_asserted_evt.wait_trigger();
+            reset_asserted_evt.wait_ptrigger();
             is_in_reset = 1;
             `uvm_info(get_type_name(), "Reset asserted - notifying agent components", UVM_MEDIUM)
 
@@ -37,7 +37,7 @@ class axis_reset_listener extends uvm_component;
             if (bw_ctrl != null)
                 bw_ctrl.reset_state();
 
-            reset_deasserted_evt.wait_trigger();
+            reset_deasserted_evt.wait_ptrigger();
             is_in_reset = 0;
             `uvm_info(get_type_name(), "Reset deasserted - agent ready to resume", UVM_MEDIUM)
 
@@ -45,9 +45,7 @@ class axis_reset_listener extends uvm_component;
                 sqr.set_reset_active(0);
 
             if (cfg.hot_reset_enable && sqr != null && sqr.last_seq_type_name != "") begin
-                `uvm_info(get_type_name(),
-                    $sformatf("Hot reset: restarting sequence '%s'", sqr.last_seq_type_name),
-                    UVM_MEDIUM)
+                sqr.restart_last_sequence();
             end
         end
     endtask
