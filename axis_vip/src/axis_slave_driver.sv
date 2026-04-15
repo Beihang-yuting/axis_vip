@@ -10,6 +10,8 @@ class axis_slave_driver extends uvm_driver #(axis_transfer);
     protected bit valid_seen = 0;
     protected int unsigned delay_counter = 0;
     protected int unsigned target_delay = 0;
+    protected bit ready_before_valid_active = 0;
+    protected int unsigned rbv_cooldown = 0;
 
     function new(string name, uvm_component parent);
         super.new(name, parent);
@@ -30,11 +32,17 @@ class axis_slave_driver extends uvm_driver #(axis_transfer);
                 drive_reset_values();
                 valid_seen = 0;
                 delay_counter = 0;
+                ready_before_valid_active = 0;
+                rbv_cooldown = 0;
                 @(posedge vif.aclk);
                 continue;
             end
-            drive_ready();
-            @(vif.slave_cb);
+            if (cfg.slave_drive_mode == SLAVE_SEQ_DRIVEN) begin
+                drive_ready_from_seq();
+            end else begin
+                drive_ready();
+                @(vif.slave_cb);
+            end
         end
     endtask
 
@@ -47,7 +55,18 @@ class axis_slave_driver extends uvm_driver #(axis_transfer);
                 vif.slave_cb.tready <= 1'b1;
             end
             READY_BEFORE_VALID: begin
-                vif.slave_cb.tready <= 1'b1;
+                if (rbv_cooldown > 0) begin
+                    vif.slave_cb.tready <= 1'b0;
+                    rbv_cooldown--;
+                end else if (!ready_before_valid_active) begin
+                    vif.slave_cb.tready <= 1'b1;
+                    ready_before_valid_active = 1;
+                end else if (tvalid_current) begin
+                    // Handshake will complete this cycle; deassert ready and cooldown
+                    vif.slave_cb.tready <= 1'b0;
+                    ready_before_valid_active = 0;
+                    rbv_cooldown = cfg.ready_advance_cycles;
+                end
             end
             READY_WITH_VALID: begin
                 vif.slave_cb.tready <= tvalid_current;
@@ -86,6 +105,34 @@ class axis_slave_driver extends uvm_driver #(axis_transfer);
                 vif.slave_cb.tready <= 1'b1;
             end
         endcase
+    endtask
+
+    protected task drive_ready_from_seq();
+        seq_item_port.get_next_item(req);
+        if (in_reset) begin
+            seq_item_port.item_done();
+            return;
+        end
+        // req.delay = number of cycles to hold tready low before asserting
+        repeat (req.delay) begin
+            if (in_reset) begin
+                seq_item_port.item_done();
+                return;
+            end
+            vif.slave_cb.tready <= 1'b0;
+            @(vif.slave_cb);
+        end
+        // Assert tready, wait for handshake
+        vif.slave_cb.tready <= 1'b1;
+        @(vif.slave_cb);
+        while (!(vif.slave_cb.tvalid && vif.slave_cb.tready)) begin
+            if (in_reset) begin
+                seq_item_port.item_done();
+                return;
+            end
+            @(vif.slave_cb);
+        end
+        seq_item_port.item_done();
     endtask
 
     function void drive_reset_values();
