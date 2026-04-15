@@ -9,6 +9,7 @@ class axis_monitor extends uvm_monitor;
     uvm_analysis_port #(axis_packet)   packet_ap;
 
     protected axis_packet in_progress_packets[bit[15:0]];
+    protected int unsigned last_beat_time[bit[15:0]];
     bit in_reset = 0;
 
     function new(string name, uvm_component parent);
@@ -26,6 +27,13 @@ class axis_monitor extends uvm_monitor;
     endfunction
 
     task run_phase(uvm_phase phase);
+        fork
+            sample_loop();
+            timeout_monitor_loop();
+        join
+    endtask
+
+    protected task sample_loop();
         forever begin
             if (in_reset) begin
                 flush_in_progress();
@@ -35,6 +43,31 @@ class axis_monitor extends uvm_monitor;
             @(vif.monitor_cb);
             if (vif.monitor_cb.tvalid && vif.monitor_cb.tready) begin
                 sample_beat();
+            end
+        end
+    endtask
+
+    protected task timeout_monitor_loop();
+        // Only active in TIMEOUT mode
+        forever begin
+            @(posedge vif.aclk);
+            if (in_reset || cfg.pkt_boundary_mode != PKT_BOUNDARY_TIMEOUT)
+                continue;
+            begin
+                bit [15:0] tids_to_flush[$];
+                foreach (last_beat_time[tid]) begin
+                    last_beat_time[tid]++;
+                    if (last_beat_time[tid] >= cfg.pkt_boundary_timeout_cycles)
+                        tids_to_flush.push_back(tid);
+                end
+                foreach (tids_to_flush[i]) begin
+                    bit [15:0] tid = tids_to_flush[i];
+                    if (in_progress_packets.exists(tid)) begin
+                        packet_ap.write(in_progress_packets[tid]);
+                        in_progress_packets.delete(tid);
+                    end
+                    last_beat_time.delete(tid);
+                end
             end
         end
     endtask
@@ -59,14 +92,32 @@ class axis_monitor extends uvm_monitor;
 
         in_progress_packets[tr.tid].add_beat(tr);
 
-        if (tr.tlast || !cfg.HAS_TLAST) begin
-            packet_ap.write(in_progress_packets[tr.tid]);
-            in_progress_packets.delete(tr.tid);
+        // Packet completion check
+        begin
+            bit pkt_complete = 0;
+            case (cfg.pkt_boundary_mode)
+                PKT_BOUNDARY_TLAST:
+                    pkt_complete = tr.tlast || !cfg.HAS_TLAST;
+                PKT_BOUNDARY_TIMEOUT: begin
+                    last_beat_time[tr.tid] = 0;  // Reset timeout counter
+                    pkt_complete = 0;  // timeout_monitor_loop handles completion
+                end
+                PKT_BOUNDARY_FIXED_LEN:
+                    pkt_complete = (in_progress_packets[tr.tid].packet_length
+                                   >= cfg.pkt_boundary_fixed_length);
+            endcase
+
+            if (pkt_complete) begin
+                packet_ap.write(in_progress_packets[tr.tid]);
+                in_progress_packets.delete(tr.tid);
+                last_beat_time.delete(tr.tid);
+            end
         end
     endfunction
 
     protected function void flush_in_progress();
         in_progress_packets.delete();
+        last_beat_time.delete();
     endfunction
 
     function void set_in_reset(bit rst);
