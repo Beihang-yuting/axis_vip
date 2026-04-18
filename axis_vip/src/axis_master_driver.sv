@@ -58,13 +58,13 @@ class axis_master_driver extends uvm_driver #(axis_transfer);
         endcase
 
         vif.master_cb.tvalid <= 1'b1;
-        vif.master_cb.tdata  <= tr.tdata[cfg.TDATA_WIDTH-1:0];
-        if (cfg.HAS_TSTRB) vif.master_cb.tstrb <= tr.tstrb[cfg.get_byte_lanes()-1:0];
-        if (cfg.HAS_TKEEP) vif.master_cb.tkeep <= tr.tkeep[cfg.get_byte_lanes()-1:0];
+        vif.master_cb.tdata  <= tr.tdata;
+        if (cfg.HAS_TSTRB) vif.master_cb.tstrb <= tr.tstrb;
+        if (cfg.HAS_TKEEP) vif.master_cb.tkeep <= tr.tkeep;
         if (cfg.HAS_TLAST) vif.master_cb.tlast <= tr.tlast;
-        vif.master_cb.tid   <= tr.tid[cfg.TID_WIDTH-1:0];
-        vif.master_cb.tdest <= tr.tdest[cfg.TDEST_WIDTH-1:0];
-        vif.master_cb.tuser <= tr.tuser[cfg.TUSER_WIDTH-1:0];
+        vif.master_cb.tid   <= tr.tid;
+        vif.master_cb.tdest <= tr.tdest;
+        vif.master_cb.tuser <= tr.tuser;
 
         @(vif.master_cb);
         while (!vif.master_cb.tready) begin

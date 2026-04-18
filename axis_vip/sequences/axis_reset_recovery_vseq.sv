@@ -32,16 +32,16 @@ class axis_reset_recovery_vseq extends axis_base_vseq;
 
         `uvm_info(get_type_name(), "Asserting reset", UVM_LOW)
         if (master_cfg.reset_polarity == AXIS_RESET_ACTIVE_LOW)
-            vif.aresetn <= 1'b0;
+            void'(uvm_hdl_force("tb_top.aresetn", 0));
         else
-            vif.aresetn <= 1'b1;
+            void'(uvm_hdl_force("tb_top.aresetn", 1));
         repeat (reset_duration_cycles) @(posedge vif.aclk);
 
         `uvm_info(get_type_name(), "Deasserting reset", UVM_LOW)
         if (master_cfg.reset_polarity == AXIS_RESET_ACTIVE_LOW)
-            vif.aresetn <= 1'b1;
+            void'(uvm_hdl_force("tb_top.aresetn", 1));
         else
-            vif.aresetn <= 1'b0;
+            void'(uvm_hdl_force("tb_top.aresetn", 0));
         repeat (5) @(posedge vif.aclk);
 
         transition_to(AXIS_SEQ_STATE_RECOVERY);

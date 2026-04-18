@@ -35,9 +35,10 @@ interface axis_if #(
         input  tvalid, tdata, tstrb, tkeep, tlast, tid, tdest, tuser;
     endclocking
 
-    // Monitor clocking block
+    // Monitor clocking block — sample after NBA settles (Observed region)
+    // so DUT registered outputs are visible in the same cycle they are driven
     clocking monitor_cb @(posedge aclk);
-        default input #1step;
+        default input #0;
         input tvalid, tready, tdata, tstrb, tkeep, tlast, tid, tdest, tuser;
     endclocking
 

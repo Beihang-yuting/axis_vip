@@ -10,6 +10,8 @@ class axis_burst_seq extends axis_base_seq;
 
     constraint c_packets { num_packets inside {[2:32]}; }
     constraint c_pkt_len { min_pkt_len inside {[1:16]}; max_pkt_len inside {[4:64]}; max_pkt_len >= min_pkt_len; }
+    constraint c_tid_range  { burst_tid   inside {[0:15]}; }
+    constraint c_tdest_range { burst_tdest inside {[0:15]}; }
 
     function new(string name = "axis_burst_seq");
         super.new(name);

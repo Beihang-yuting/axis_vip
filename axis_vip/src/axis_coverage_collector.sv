@@ -50,7 +50,7 @@ class axis_coverage_collector extends uvm_component;
             bins zero      = {0};
             bins one       = {1};
             bins short_    = {[2:5]};
-            bins medium    = {[6:20]};
+            bins med_      = {[6:20]};
             bins long_     = {[21:100]};
             bins very_long = {[101:$]};
         }
@@ -61,7 +61,7 @@ class axis_coverage_collector extends uvm_component;
         cp_length: coverpoint sampled_pkt_len {
             bins single  = {1};
             bins short_  = {[2:4]};
-            bins medium  = {[5:16]};
+            bins med_    = {[5:16]};
             bins long_   = {[17:64]};
             bins longer  = {[65:256]};
             bins max_    = {[257:$]};
@@ -81,7 +81,7 @@ class axis_coverage_collector extends uvm_component;
             bins zero    = {0};
             bins one     = {1};
             bins short_  = {[2:5]};
-            bins medium  = {[6:20]};
+            bins med_    = {[6:20]};
             bins long_   = {[21:$]};
         }
         cp_bp_consec_count: coverpoint sampled_bp_consec_count {
@@ -128,7 +128,7 @@ class axis_coverage_collector extends uvm_component;
         cp_bw: coverpoint sampled_bandwidth_permille {
             bins zero      = {0};
             bins low       = {[1:250]};
-            bins medium    = {[251:500]};
+            bins med_      = {[251:500]};
             bins high      = {[501:750]};
             bins very_high = {[751:1000]};
         }
@@ -139,7 +139,7 @@ class axis_coverage_collector extends uvm_component;
         cp_pkt_len: coverpoint sampled_pkt_len {
             bins single  = {1};
             bins short_  = {[2:4]};
-            bins medium  = {[5:16]};
+            bins med_    = {[5:16]};
             bins long_   = {[17:64]};
             bins longer  = {[65:256]};
             bins max_    = {[257:$]};
@@ -154,7 +154,7 @@ class axis_coverage_collector extends uvm_component;
             bins zero      = {0};
             bins one       = {1};
             bins short_    = {[2:5]};
-            bins medium    = {[6:20]};
+            bins med_      = {[6:20]};
             bins long_     = {[21:100]};
             bins very_long = {[101:$]};
         }

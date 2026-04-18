@@ -11,6 +11,7 @@ FILELIST = filelist.f
 
 # ---- VCS ----
 VCS_OPTS = -full64 -sverilog -ntb_opts uvm-1.2 -timescale=1ns/1ps \
+           -debug_access+all \
            +incdir+../src +incdir+../sequences +incdir+../tests \
            -f $(FILELIST) -l compile.log
 

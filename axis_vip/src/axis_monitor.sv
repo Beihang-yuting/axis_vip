@@ -75,13 +75,13 @@ class axis_monitor extends uvm_monitor;
     protected function void sample_beat();
         axis_transfer tr = axis_transfer::type_id::create("tr");
         tr.cfg   = cfg;
-        tr.tdata = vif.monitor_cb.tdata;
-        tr.tstrb = cfg.HAS_TSTRB ? vif.monitor_cb.tstrb : '1;
-        tr.tkeep = cfg.HAS_TKEEP ? vif.monitor_cb.tkeep : '1;
-        tr.tlast = cfg.HAS_TLAST ? vif.monitor_cb.tlast : 1'b0;
-        tr.tid   = vif.monitor_cb.tid;
-        tr.tdest = vif.monitor_cb.tdest;
-        tr.tuser = vif.monitor_cb.tuser;
+        tr.tdata = vif.tdata;
+        tr.tstrb = cfg.HAS_TSTRB ? vif.tstrb : '1;
+        tr.tkeep = cfg.HAS_TKEEP ? vif.tkeep : '1;
+        tr.tlast = cfg.HAS_TLAST ? vif.tlast : 1'b0;
+        tr.tid   = vif.tid;
+        tr.tdest = vif.tdest;
+        tr.tuser = vif.tuser;
 
         beat_ap.write(tr);
 

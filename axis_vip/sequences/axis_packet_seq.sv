@@ -11,6 +11,8 @@ class axis_packet_seq extends axis_base_seq;
     constraint c_length { packet_length inside {[1:256]}; }
     constraint c_delay  { inter_beat_delay inside {[0:3]}; }
     constraint c_pattern { data_pattern inside {[0:3]}; }
+    constraint c_tid_range  { packet_tid   inside {[0:15]}; }
+    constraint c_tdest_range { packet_tdest inside {[0:15]}; }
 
     function new(string name = "axis_packet_seq");
         super.new(name);

@@ -125,7 +125,7 @@ class axis_slave_driver extends uvm_driver #(axis_transfer);
         // Assert tready, wait for handshake
         vif.slave_cb.tready <= 1'b1;
         @(vif.slave_cb);
-        while (!(vif.slave_cb.tvalid && vif.slave_cb.tready)) begin
+        while (!(vif.slave_cb.tvalid && vif.tready)) begin
             if (in_reset) begin
                 seq_item_port.item_done();
                 return;

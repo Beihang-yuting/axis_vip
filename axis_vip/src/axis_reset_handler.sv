@@ -28,7 +28,12 @@ class axis_reset_handler extends uvm_component;
     endfunction
 
     task run_phase(uvm_phase phase);
+        // Handle initial reset: mark all agents in reset before traffic starts
+        handle_reset_assert();
         wait_for_reset_done();
+        handle_reset_deassert();
+        @(posedge vif.aclk);
+        reset_deasserted_evt.reset();
         forever begin
             if (cfg.reset_sync_mode == AXIS_RESET_SYNC)
                 wait_for_sync_reset_assert();

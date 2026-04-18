@@ -18,6 +18,9 @@ class axis_base_vseq extends uvm_sequence #(axis_transfer);
     task pre_body();
         if (master_sqr != null) master_cfg = master_sqr.cfg;
         if (slave_sqr != null)  slave_cfg  = slave_sqr.cfg;
+        // Wait for initial reset to complete before sending traffic
+        if (master_sqr != null)
+            while (master_sqr.reset_active) #1;
     endtask
 
     function void transition_to(axis_seq_state_e new_state);
