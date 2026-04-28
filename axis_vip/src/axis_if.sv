@@ -1,8 +1,8 @@
 interface axis_if #(
-    parameter int TDATA_WIDTH = 32,
+    parameter int TDATA_WIDTH = 512,   // 默认最大值，兼容 PCIe 256/512 位宽
     parameter int TID_WIDTH   = 4,
     parameter int TDEST_WIDTH = 4,
-    parameter int TUSER_WIDTH = 1,
+    parameter int TUSER_WIDTH = 512,   // 默认最大值，兼容 PCIe tuser 各通道宽度
     parameter bit HAS_TSTRB   = 1,
     parameter bit HAS_TKEEP   = 1,
     parameter bit HAS_TLAST   = 1
