@@ -18,6 +18,12 @@
     .HAS_TKEEP   (1),   \
     .HAS_TLAST   (1)
 
+// ---- Transaction 容器宽度（item 最大宽度，不随接口参数变化）----
+`define AXIS_MAX_TDATA  512
+`define AXIS_MAX_TUSER  512
+`define AXIS_MAX_TID    16
+`define AXIS_MAX_TDEST  16
+
 `define AXIS_VIF_INST(name, clk, rstn) \
     axis_if #(`AXIS_VIF_PARAMS) name (.aclk(clk), .aresetn(rstn))
 
