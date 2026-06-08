@@ -1,19 +1,34 @@
-class axis_env extends uvm_env;
+class axis_env #(
+    parameter int TDATA_WIDTH = `AXIS_MAX_TDATA,
+    parameter int TID_WIDTH   = 4,
+    parameter int TDEST_WIDTH = 4,
+    parameter int TUSER_WIDTH = 1,
+    parameter bit HAS_TSTRB   = 0,
+    parameter bit HAS_TKEEP   = 1,
+    parameter bit HAS_TLAST   = 1
+) extends uvm_env;
 
-    `uvm_component_utils(axis_env)
+    `uvm_component_param_utils(axis_env#(TDATA_WIDTH,TID_WIDTH,TDEST_WIDTH,TUSER_WIDTH,HAS_TSTRB,HAS_TKEEP,HAS_TLAST))
+
+    typedef axis_agent             #(TDATA_WIDTH,TID_WIDTH,TDEST_WIDTH,TUSER_WIDTH,HAS_TSTRB,HAS_TKEEP,HAS_TLAST) agent_t;
+    typedef axis_reset_handler     #(TDATA_WIDTH,TID_WIDTH,TDEST_WIDTH,TUSER_WIDTH,HAS_TSTRB,HAS_TKEEP,HAS_TLAST) rst_handler_t;
+    typedef axis_phase_controller  #(TDATA_WIDTH,TID_WIDTH,TDEST_WIDTH,TUSER_WIDTH,HAS_TSTRB,HAS_TKEEP,HAS_TLAST) phase_ctrl_t;
+    typedef axis_coverage_collector#(TDATA_WIDTH,TID_WIDTH,TDEST_WIDTH,TUSER_WIDTH,HAS_TSTRB,HAS_TKEEP,HAS_TLAST) cov_t;
+    typedef axis_bandwidth_checker #(TDATA_WIDTH,TID_WIDTH,TDEST_WIDTH,TUSER_WIDTH,HAS_TSTRB,HAS_TKEEP,HAS_TLAST) bw_checker_t;
+    typedef axis_protocol_checker  #(TDATA_WIDTH,TID_WIDTH,TDEST_WIDTH,TUSER_WIDTH,HAS_TSTRB,HAS_TKEEP,HAS_TLAST) proto_checker_t;
 
     axis_config master_cfg;
     axis_config slave_cfg;
 
-    axis_agent master_agent;
-    axis_agent slave_agent;
+    agent_t master_agent;
+    agent_t slave_agent;
 
-    axis_reset_handler        rst_handler;
-    axis_phase_controller     phase_ctrl;
+    rst_handler_t             rst_handler;
+    phase_ctrl_t              phase_ctrl;
     axis_scoreboard           sb;
-    axis_coverage_collector   cov;
-    axis_bandwidth_checker    bw_checker;
-    axis_protocol_checker     proto_checker;
+    cov_t                     cov;
+    bw_checker_t              bw_checker;
+    proto_checker_t           proto_checker;
 
     function new(string name, uvm_component parent);
         super.new(name, parent);
@@ -35,14 +50,14 @@ class axis_env extends uvm_env;
         uvm_config_db#(axis_config)::set(this, "bw_checker",    "cfg", master_cfg);
         uvm_config_db#(axis_config)::set(this, "cov",           "cfg", master_cfg);
 
-        master_agent  = axis_agent::type_id::create("master_agent", this);
-        slave_agent   = axis_agent::type_id::create("slave_agent",  this);
-        rst_handler   = axis_reset_handler::type_id::create("rst_handler", this);
-        phase_ctrl    = axis_phase_controller::type_id::create("phase_ctrl", this);
+        master_agent  = agent_t::type_id::create("master_agent", this);
+        slave_agent   = agent_t::type_id::create("slave_agent",  this);
+        rst_handler   = rst_handler_t::type_id::create("rst_handler", this);
+        phase_ctrl    = phase_ctrl_t::type_id::create("phase_ctrl", this);
         sb            = axis_scoreboard::type_id::create("sb", this);
-        cov           = axis_coverage_collector::type_id::create("cov", this);
-        bw_checker    = axis_bandwidth_checker::type_id::create("bw_checker", this);
-        proto_checker = axis_protocol_checker::type_id::create("proto_checker", this);
+        cov           = cov_t::type_id::create("cov", this);
+        bw_checker    = bw_checker_t::type_id::create("bw_checker", this);
+        proto_checker = proto_checker_t::type_id::create("proto_checker", this);
     endfunction
 
     function void connect_phase(uvm_phase phase);

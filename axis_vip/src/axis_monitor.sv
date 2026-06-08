@@ -1,8 +1,18 @@
-class axis_monitor extends uvm_monitor;
+class axis_monitor #(
+    parameter int TDATA_WIDTH = `AXIS_MAX_TDATA,
+    parameter int TID_WIDTH   = 4,
+    parameter int TDEST_WIDTH = 4,
+    parameter int TUSER_WIDTH = 1,
+    parameter bit HAS_TSTRB   = 0,
+    parameter bit HAS_TKEEP   = 1,
+    parameter bit HAS_TLAST   = 1
+) extends uvm_monitor;
 
-    `uvm_component_utils(axis_monitor)
+    `uvm_component_param_utils(axis_monitor#(TDATA_WIDTH,TID_WIDTH,TDEST_WIDTH,TUSER_WIDTH,HAS_TSTRB,HAS_TKEEP,HAS_TLAST))
 
-    axis_vif_t vif;
+    typedef virtual axis_if #(TDATA_WIDTH, TID_WIDTH, TDEST_WIDTH,
+                              TUSER_WIDTH, HAS_TSTRB, HAS_TKEEP, HAS_TLAST) vif_t;
+    vif_t vif;
     axis_config cfg;
 
     uvm_analysis_port #(axis_transfer) beat_ap;
@@ -22,7 +32,7 @@ class axis_monitor extends uvm_monitor;
         packet_ap = new("packet_ap", this);
         if (!uvm_config_db#(axis_config)::get(this, "", "cfg", cfg))
             `uvm_fatal("NOCFG", "axis_config not found in config_db")
-        if (!uvm_config_db#(axis_vif_t)::get(this, "", "vif", vif))
+        if (!uvm_config_db#(vif_t)::get(this, "", "vif", vif))
             `uvm_fatal("NOVIF", "Virtual interface not found in config_db")
     endfunction
 

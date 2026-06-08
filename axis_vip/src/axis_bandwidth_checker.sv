@@ -1,10 +1,21 @@
-class axis_bandwidth_checker extends uvm_subscriber #(axis_transfer);
+class axis_bandwidth_checker #(
+    parameter int TDATA_WIDTH = `AXIS_MAX_TDATA,
+    parameter int TID_WIDTH   = 4,
+    parameter int TDEST_WIDTH = 4,
+    parameter int TUSER_WIDTH = 1,
+    parameter bit HAS_TSTRB   = 0,
+    parameter bit HAS_TKEEP   = 1,
+    parameter bit HAS_TLAST   = 1
+) extends uvm_subscriber #(axis_transfer);
 
-    `uvm_component_utils(axis_bandwidth_checker)
+    `uvm_component_param_utils(axis_bandwidth_checker#(TDATA_WIDTH,TID_WIDTH,TDEST_WIDTH,TUSER_WIDTH,HAS_TSTRB,HAS_TKEEP,HAS_TLAST))
 
-    axis_vif_t vif;
+    typedef virtual axis_if #(TDATA_WIDTH, TID_WIDTH, TDEST_WIDTH,
+                              TUSER_WIDTH, HAS_TSTRB, HAS_TKEEP, HAS_TLAST) vif_t;
+    typedef axis_coverage_collector #(TDATA_WIDTH,TID_WIDTH,TDEST_WIDTH,TUSER_WIDTH,HAS_TSTRB,HAS_TKEEP,HAS_TLAST) cov_t;
+    vif_t vif;
     axis_config cfg;
-    axis_coverage_collector cov_collector;
+    cov_t cov_collector;
 
     protected int unsigned bytes_in_window;
     protected int unsigned cycle_counter;
@@ -19,7 +30,7 @@ class axis_bandwidth_checker extends uvm_subscriber #(axis_transfer);
         super.build_phase(phase);
         if (!uvm_config_db#(axis_config)::get(this, "", "cfg", cfg))
             `uvm_fatal("NOCFG", "axis_config not found in config_db")
-        if (!uvm_config_db#(axis_vif_t)::get(this, "", "vif", vif))
+        if (!uvm_config_db#(vif_t)::get(this, "", "vif", vif))
             `uvm_fatal("NOVIF", "Virtual interface not found in config_db")
     endfunction
 

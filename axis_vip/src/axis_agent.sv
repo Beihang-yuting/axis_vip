@@ -1,12 +1,24 @@
-class axis_agent extends uvm_agent;
+class axis_agent #(
+    parameter int TDATA_WIDTH = `AXIS_MAX_TDATA,
+    parameter int TID_WIDTH   = 4,
+    parameter int TDEST_WIDTH = 4,
+    parameter int TUSER_WIDTH = 1,
+    parameter bit HAS_TSTRB   = 0,
+    parameter bit HAS_TKEEP   = 1,
+    parameter bit HAS_TLAST   = 1
+) extends uvm_agent;
 
-    `uvm_component_utils(axis_agent)
+    `uvm_component_param_utils(axis_agent#(TDATA_WIDTH,TID_WIDTH,TDEST_WIDTH,TUSER_WIDTH,HAS_TSTRB,HAS_TKEEP,HAS_TLAST))
+
+    typedef axis_master_driver#(TDATA_WIDTH,TID_WIDTH,TDEST_WIDTH,TUSER_WIDTH,HAS_TSTRB,HAS_TKEEP,HAS_TLAST) m_drv_t;
+    typedef axis_slave_driver #(TDATA_WIDTH,TID_WIDTH,TDEST_WIDTH,TUSER_WIDTH,HAS_TSTRB,HAS_TKEEP,HAS_TLAST) s_drv_t;
+    typedef axis_monitor      #(TDATA_WIDTH,TID_WIDTH,TDEST_WIDTH,TUSER_WIDTH,HAS_TSTRB,HAS_TKEEP,HAS_TLAST) mon_t;
 
     axis_config              cfg;
     axis_sequencer           sqr;
-    axis_master_driver       m_drv;
-    axis_slave_driver        s_drv;
-    axis_monitor             mon;
+    m_drv_t                  m_drv;
+    s_drv_t                  s_drv;
+    mon_t                    mon;
     axis_bandwidth_controller bw_ctrl;
     axis_reset_listener      rst_listener;
 
@@ -19,16 +31,16 @@ class axis_agent extends uvm_agent;
         if (!uvm_config_db#(axis_config)::get(this, "", "cfg", cfg))
             `uvm_fatal("NOCFG", "axis_config not found in config_db")
 
-        mon = axis_monitor::type_id::create("mon", this);
+        mon = mon_t::type_id::create("mon", this);
         rst_listener = axis_reset_listener::type_id::create("rst_listener", this);
 
         if (cfg.agent_mode != AXIS_MONITOR_ONLY && cfg.is_active == UVM_ACTIVE) begin
             sqr     = axis_sequencer::type_id::create("sqr", this);
             bw_ctrl = axis_bandwidth_controller::type_id::create("bw_ctrl", this);
             if (cfg.agent_mode == AXIS_MASTER)
-                m_drv = axis_master_driver::type_id::create("m_drv", this);
+                m_drv = m_drv_t::type_id::create("m_drv", this);
             else if (cfg.agent_mode == AXIS_SLAVE)
-                s_drv = axis_slave_driver::type_id::create("s_drv", this);
+                s_drv = s_drv_t::type_id::create("s_drv", this);
         end
     endfunction
 

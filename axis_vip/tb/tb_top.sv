@@ -20,14 +20,14 @@ module tb_top;
         aresetn = 1'b1;
     end
 
-    `AXIS_VIF_INST(master_if, aclk, aresetn);
-    `AXIS_VIF_INST(slave_if,  aclk, aresetn);
+    axis_if #(32,4,4,1,0,1,1) master_if (.aclk(aclk), .aresetn(aresetn));
+    axis_if #(32,4,4,1,0,1,1) slave_if  (.aclk(aclk), .aresetn(aresetn));
 
     axis_dummy_dut #(
-        .TDATA_WIDTH (512),
+        .TDATA_WIDTH (32),
         .TID_WIDTH   (4),
         .TDEST_WIDTH (4),
-        .TUSER_WIDTH (375)
+        .TUSER_WIDTH (1)
     ) dut (
         .aclk(aclk),
         .aresetn(aresetn),
@@ -57,13 +57,13 @@ module tb_top;
     );
 
     initial begin
-        uvm_config_db#(axis_vif_t)::set(null, "uvm_test_top.env.master_agent*", "vif", master_if);
-        uvm_config_db#(axis_vif_t)::set(null, "uvm_test_top.env.slave_agent*",  "vif", slave_if);
-        uvm_config_db#(axis_vif_t)::set(null, "uvm_test_top.env.rst_handler",   "vif", master_if);
-        uvm_config_db#(axis_vif_t)::set(null, "uvm_test_top.env.proto_checker", "vif", master_if);
-        uvm_config_db#(axis_vif_t)::set(null, "uvm_test_top.env.bw_checker",    "vif", master_if);
-        uvm_config_db#(axis_vif_t)::set(null, "uvm_test_top.env.phase_ctrl",    "vif", master_if);
-        uvm_config_db#(axis_vif_t)::set(null, "uvm_test_top.env.cov",           "vif", master_if);
+        uvm_config_db#(axis_vif_default_t)::set(null, "uvm_test_top.env.master_agent*", "vif", master_if);
+        uvm_config_db#(axis_vif_default_t)::set(null, "uvm_test_top.env.slave_agent*",  "vif", slave_if);
+        uvm_config_db#(axis_vif_default_t)::set(null, "uvm_test_top.env.rst_handler",   "vif", master_if);
+        uvm_config_db#(axis_vif_default_t)::set(null, "uvm_test_top.env.proto_checker", "vif", master_if);
+        uvm_config_db#(axis_vif_default_t)::set(null, "uvm_test_top.env.bw_checker",    "vif", master_if);
+        uvm_config_db#(axis_vif_default_t)::set(null, "uvm_test_top.env.phase_ctrl",    "vif", master_if);
+        uvm_config_db#(axis_vif_default_t)::set(null, "uvm_test_top.env.cov",           "vif", master_if);
     end
 
     initial begin

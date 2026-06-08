@@ -1,15 +1,26 @@
-class axis_reset_handler extends uvm_component;
+class axis_reset_handler #(
+    parameter int TDATA_WIDTH = `AXIS_MAX_TDATA,
+    parameter int TID_WIDTH   = 4,
+    parameter int TDEST_WIDTH = 4,
+    parameter int TUSER_WIDTH = 1,
+    parameter bit HAS_TSTRB   = 0,
+    parameter bit HAS_TKEEP   = 1,
+    parameter bit HAS_TLAST   = 1
+) extends uvm_component;
 
-    `uvm_component_utils(axis_reset_handler)
+    `uvm_component_param_utils(axis_reset_handler#(TDATA_WIDTH,TID_WIDTH,TDEST_WIDTH,TUSER_WIDTH,HAS_TSTRB,HAS_TKEEP,HAS_TLAST))
 
-    axis_vif_t vif;
+    typedef virtual axis_if #(TDATA_WIDTH, TID_WIDTH, TDEST_WIDTH,
+                              TUSER_WIDTH, HAS_TSTRB, HAS_TKEEP, HAS_TLAST) vif_t;
+    typedef axis_agent #(TDATA_WIDTH,TID_WIDTH,TDEST_WIDTH,TUSER_WIDTH,HAS_TSTRB,HAS_TKEEP,HAS_TLAST) agent_t;
+    vif_t vif;
     axis_config cfg;
 
     uvm_event reset_asserted_evt;
     uvm_event reset_active_evt;
     uvm_event reset_deasserted_evt;
 
-    axis_agent agents[$];
+    agent_t agents[$];
     bit is_in_reset = 0;
 
     function new(string name, uvm_component parent);
@@ -23,7 +34,7 @@ class axis_reset_handler extends uvm_component;
         super.build_phase(phase);
         if (!uvm_config_db#(axis_config)::get(this, "", "cfg", cfg))
             `uvm_fatal("NOCFG", "axis_config not found in config_db")
-        if (!uvm_config_db#(axis_vif_t)::get(this, "", "vif", vif))
+        if (!uvm_config_db#(vif_t)::get(this, "", "vif", vif))
             `uvm_fatal("NOVIF", "Virtual interface not found in config_db")
     endfunction
 

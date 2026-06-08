@@ -5,10 +5,6 @@ package axis_pkg;
     import uvm_pkg::*;
     `include "uvm_macros.svh"
 
-    // ---- Canonical virtual interface typedef ----
-    // Driven by AXIS_VIF_PARAMS in axis_params.svh.
-    typedef virtual axis_if #(`AXIS_VIF_PARAMS) axis_vif_t;
-
     `include "axis_types.sv"
     `include "axis_protocol_checker_config.sv"
     `include "axis_config.sv"
@@ -32,6 +28,10 @@ package axis_pkg;
     `include "axis_coverage_collector.sv"
     `include "axis_bandwidth_checker.sv"
     `include "axis_env.sv"
+
+    // ---- Default convenience typedefs (axis_vip self-test, 32-bit baseline) ----
+    typedef virtual axis_if #(32,4,4,1,0,1,1)  axis_vif_default_t;
+    typedef axis_env         #(32,4,4,1,0,1,1) axis_env_default_t;
 
     `include "../sequences/axis_base_seq.sv"
     `include "../sequences/axis_single_transfer_seq.sv"

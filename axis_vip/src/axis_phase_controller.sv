@@ -1,13 +1,25 @@
-class axis_phase_controller extends uvm_component;
+class axis_phase_controller #(
+    parameter int TDATA_WIDTH = `AXIS_MAX_TDATA,
+    parameter int TID_WIDTH   = 4,
+    parameter int TDEST_WIDTH = 4,
+    parameter int TUSER_WIDTH = 1,
+    parameter bit HAS_TSTRB   = 0,
+    parameter bit HAS_TKEEP   = 1,
+    parameter bit HAS_TLAST   = 1
+) extends uvm_component;
 
-    `uvm_component_utils(axis_phase_controller)
+    `uvm_component_param_utils(axis_phase_controller#(TDATA_WIDTH,TID_WIDTH,TDEST_WIDTH,TUSER_WIDTH,HAS_TSTRB,HAS_TKEEP,HAS_TLAST))
 
-    axis_vif_t vif;
+    typedef virtual axis_if #(TDATA_WIDTH, TID_WIDTH, TDEST_WIDTH,
+                              TUSER_WIDTH, HAS_TSTRB, HAS_TKEEP, HAS_TLAST) vif_t;
+    typedef axis_agent         #(TDATA_WIDTH,TID_WIDTH,TDEST_WIDTH,TUSER_WIDTH,HAS_TSTRB,HAS_TKEEP,HAS_TLAST) agent_t;
+    typedef axis_reset_handler #(TDATA_WIDTH,TID_WIDTH,TDEST_WIDTH,TUSER_WIDTH,HAS_TSTRB,HAS_TKEEP,HAS_TLAST) rst_handler_t;
+    vif_t vif;
     axis_config cfg;
-    axis_reset_handler rst_handler;
+    rst_handler_t rst_handler;
 
     int unsigned drain_timeout = 1000;
-    axis_agent agents[$];
+    agent_t agents[$];
 
     protected bit phase_jump_pending = 0;
 
@@ -19,7 +31,7 @@ class axis_phase_controller extends uvm_component;
         super.build_phase(phase);
         if (!uvm_config_db#(axis_config)::get(this, "", "cfg", cfg))
             `uvm_fatal("NOCFG", "axis_config not found in config_db")
-        if (!uvm_config_db#(axis_vif_t)::get(this, "", "vif", vif))
+        if (!uvm_config_db#(vif_t)::get(this, "", "vif", vif))
             `uvm_fatal("NOVIF", "Virtual interface not found in config_db")
     endfunction
 

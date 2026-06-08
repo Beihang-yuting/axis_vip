@@ -6,7 +6,7 @@ class axis_base_test extends uvm_test;
 
     `uvm_component_utils(axis_base_test)
 
-    axis_env    env;
+    axis_env_default_t env;
     axis_config master_cfg;
     axis_config slave_cfg;
 
@@ -24,7 +24,7 @@ class axis_base_test extends uvm_test;
         slave_cfg.is_active   = UVM_ACTIVE;
         uvm_config_db#(axis_config)::set(this, "env", "master_cfg", master_cfg);
         uvm_config_db#(axis_config)::set(this, "env", "slave_cfg",  slave_cfg);
-        env = axis_env::type_id::create("env", this);
+        env = axis_env_default_t::type_id::create("env", this);
     endfunction
 
     function void end_of_elaboration_phase(uvm_phase phase);

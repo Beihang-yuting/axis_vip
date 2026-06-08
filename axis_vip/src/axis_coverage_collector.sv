@@ -1,12 +1,23 @@
-class axis_coverage_collector extends uvm_component;
+class axis_coverage_collector #(
+    parameter int TDATA_WIDTH = `AXIS_MAX_TDATA,
+    parameter int TID_WIDTH   = 4,
+    parameter int TDEST_WIDTH = 4,
+    parameter int TUSER_WIDTH = 1,
+    parameter bit HAS_TSTRB   = 0,
+    parameter bit HAS_TKEEP   = 1,
+    parameter bit HAS_TLAST   = 1
+) extends uvm_component;
 
-    `uvm_component_utils(axis_coverage_collector)
+    `uvm_component_param_utils(axis_coverage_collector#(TDATA_WIDTH,TID_WIDTH,TDEST_WIDTH,TUSER_WIDTH,HAS_TSTRB,HAS_TKEEP,HAS_TLAST))
 
+    typedef virtual axis_if #(TDATA_WIDTH, TID_WIDTH, TDEST_WIDTH,
+                              TUSER_WIDTH, HAS_TSTRB, HAS_TKEEP, HAS_TLAST) vif_t;
+    typedef axis_coverage_collector #(TDATA_WIDTH,TID_WIDTH,TDEST_WIDTH,TUSER_WIDTH,HAS_TSTRB,HAS_TKEEP,HAS_TLAST) this_t;
     axis_config cfg;
-    axis_vif_t vif;
+    vif_t vif;
 
-    uvm_analysis_imp_master_beat #(axis_transfer, axis_coverage_collector) master_beat_export;
-    uvm_analysis_imp_slave_beat  #(axis_transfer, axis_coverage_collector) slave_beat_export;
+    uvm_analysis_imp_master_beat #(axis_transfer, this_t) master_beat_export;
+    uvm_analysis_imp_slave_beat  #(axis_transfer, this_t) slave_beat_export;
 
     // Sampled fields for covergroups
     protected bit       sampled_tvalid;
@@ -181,7 +192,7 @@ class axis_coverage_collector extends uvm_component;
         super.build_phase(phase);
         if (!uvm_config_db#(axis_config)::get(this, "", "cfg", cfg))
             `uvm_fatal("NOCFG", "axis_config not found in config_db")
-        if (!uvm_config_db#(axis_vif_t)::get(this, "", "vif", vif))
+        if (!uvm_config_db#(vif_t)::get(this, "", "vif", vif))
             `uvm_fatal("NOVIF", "Virtual interface not found in config_db")
         master_beat_export = new("master_beat_export", this);
         slave_beat_export  = new("slave_beat_export",  this);
