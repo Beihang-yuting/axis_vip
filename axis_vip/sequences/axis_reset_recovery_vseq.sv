@@ -2,7 +2,7 @@ class axis_reset_recovery_vseq extends axis_base_vseq;
 
     `uvm_object_utils(axis_reset_recovery_vseq)
 
-    virtual axis_if vif;
+    axis_vif_t vif;
 
     rand int unsigned pre_reset_packets;
     rand int unsigned post_reset_packets;

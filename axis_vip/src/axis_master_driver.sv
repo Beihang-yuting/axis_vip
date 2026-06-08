@@ -2,7 +2,7 @@ class axis_master_driver extends uvm_driver #(axis_transfer);
 
     `uvm_component_utils(axis_master_driver)
 
-    virtual axis_if vif;
+    axis_vif_t vif;
     axis_config cfg;
     axis_bandwidth_controller bw_ctrl;
     bit in_reset = 0;
@@ -15,7 +15,7 @@ class axis_master_driver extends uvm_driver #(axis_transfer);
         super.build_phase(phase);
         if (!uvm_config_db#(axis_config)::get(this, "", "cfg", cfg))
             `uvm_fatal("NOCFG", "axis_config not found in config_db")
-        if (!uvm_config_db#(virtual axis_if)::get(this, "", "vif", vif))
+        if (!uvm_config_db#(axis_vif_t)::get(this, "", "vif", vif))
             `uvm_fatal("NOVIF", "Virtual interface not found in config_db")
     endfunction
 

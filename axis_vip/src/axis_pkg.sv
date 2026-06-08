@@ -1,7 +1,13 @@
+`include "axis_params.svh"
+
 package axis_pkg;
 
     import uvm_pkg::*;
     `include "uvm_macros.svh"
+
+    // ---- Canonical virtual interface typedef ----
+    // Driven by AXIS_VIF_PARAMS in axis_params.svh.
+    typedef virtual axis_if #(`AXIS_VIF_PARAMS) axis_vif_t;
 
     `include "axis_types.sv"
     `include "axis_protocol_checker_config.sv"

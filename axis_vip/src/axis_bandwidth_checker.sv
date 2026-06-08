@@ -2,7 +2,7 @@ class axis_bandwidth_checker extends uvm_subscriber #(axis_transfer);
 
     `uvm_component_utils(axis_bandwidth_checker)
 
-    virtual axis_if vif;
+    axis_vif_t vif;
     axis_config cfg;
     axis_coverage_collector cov_collector;
 
@@ -19,7 +19,7 @@ class axis_bandwidth_checker extends uvm_subscriber #(axis_transfer);
         super.build_phase(phase);
         if (!uvm_config_db#(axis_config)::get(this, "", "cfg", cfg))
             `uvm_fatal("NOCFG", "axis_config not found in config_db")
-        if (!uvm_config_db#(virtual axis_if)::get(this, "", "vif", vif))
+        if (!uvm_config_db#(axis_vif_t)::get(this, "", "vif", vif))
             `uvm_fatal("NOVIF", "Virtual interface not found in config_db")
     endfunction
 

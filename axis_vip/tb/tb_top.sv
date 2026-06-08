@@ -1,15 +1,12 @@
 `timescale 1ns/1ps
 
+`include "axis_params.svh"
+
 module tb_top;
 
     import uvm_pkg::*;
     `include "uvm_macros.svh"
     import axis_pkg::*;
-
-    localparam int TDATA_WIDTH = 32;
-    localparam int TID_WIDTH   = 4;
-    localparam int TDEST_WIDTH = 4;
-    localparam int TUSER_WIDTH = 1;
 
     logic aclk;
     logic aresetn;
@@ -23,31 +20,14 @@ module tb_top;
         aresetn = 1'b1;
     end
 
-    axis_if #(
-        .TDATA_WIDTH(TDATA_WIDTH),
-        .TID_WIDTH(TID_WIDTH),
-        .TDEST_WIDTH(TDEST_WIDTH),
-        .TUSER_WIDTH(TUSER_WIDTH)
-    ) master_if (
-        .aclk(aclk),
-        .aresetn(aresetn)
-    );
-
-    axis_if #(
-        .TDATA_WIDTH(TDATA_WIDTH),
-        .TID_WIDTH(TID_WIDTH),
-        .TDEST_WIDTH(TDEST_WIDTH),
-        .TUSER_WIDTH(TUSER_WIDTH)
-    ) slave_if (
-        .aclk(aclk),
-        .aresetn(aresetn)
-    );
+    `AXIS_VIF_INST(master_if, aclk, aresetn);
+    `AXIS_VIF_INST(slave_if,  aclk, aresetn);
 
     axis_dummy_dut #(
-        .TDATA_WIDTH(TDATA_WIDTH),
-        .TID_WIDTH(TID_WIDTH),
-        .TDEST_WIDTH(TDEST_WIDTH),
-        .TUSER_WIDTH(TUSER_WIDTH)
+        .TDATA_WIDTH (512),
+        .TID_WIDTH   (4),
+        .TDEST_WIDTH (4),
+        .TUSER_WIDTH (375)
     ) dut (
         .aclk(aclk),
         .aresetn(aresetn),
@@ -77,13 +57,13 @@ module tb_top;
     );
 
     initial begin
-        uvm_config_db#(virtual axis_if)::set(null, "uvm_test_top.env.master_agent*", "vif", master_if);
-        uvm_config_db#(virtual axis_if)::set(null, "uvm_test_top.env.slave_agent*",  "vif", slave_if);
-        uvm_config_db#(virtual axis_if)::set(null, "uvm_test_top.env.rst_handler",   "vif", master_if);
-        uvm_config_db#(virtual axis_if)::set(null, "uvm_test_top.env.proto_checker", "vif", master_if);
-        uvm_config_db#(virtual axis_if)::set(null, "uvm_test_top.env.bw_checker",    "vif", master_if);
-        uvm_config_db#(virtual axis_if)::set(null, "uvm_test_top.env.phase_ctrl",   "vif", master_if);
-        uvm_config_db#(virtual axis_if)::set(null, "uvm_test_top.env.cov",          "vif", master_if);
+        uvm_config_db#(axis_vif_t)::set(null, "uvm_test_top.env.master_agent*", "vif", master_if);
+        uvm_config_db#(axis_vif_t)::set(null, "uvm_test_top.env.slave_agent*",  "vif", slave_if);
+        uvm_config_db#(axis_vif_t)::set(null, "uvm_test_top.env.rst_handler",   "vif", master_if);
+        uvm_config_db#(axis_vif_t)::set(null, "uvm_test_top.env.proto_checker", "vif", master_if);
+        uvm_config_db#(axis_vif_t)::set(null, "uvm_test_top.env.bw_checker",    "vif", master_if);
+        uvm_config_db#(axis_vif_t)::set(null, "uvm_test_top.env.phase_ctrl",    "vif", master_if);
+        uvm_config_db#(axis_vif_t)::set(null, "uvm_test_top.env.cov",           "vif", master_if);
     end
 
     initial begin

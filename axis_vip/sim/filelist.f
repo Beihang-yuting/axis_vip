@@ -1,3 +1,6 @@
+// Include search path for `include "axis_params.svh" (self-contained for -f consumers)
++incdir+/home/ubuntu/ryan/axis_work/axis_vip/src
+
 // Interface (compiled separately, not in package)
 ../src/axis_if.sv
 

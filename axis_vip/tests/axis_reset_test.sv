@@ -6,7 +6,7 @@ class axis_reset_test extends axis_base_test;
 
     `uvm_component_utils(axis_reset_test)
 
-    virtual axis_if vif;
+    axis_vif_t vif;
 
     function new(string name, uvm_component parent);
         super.new(name, parent);
@@ -19,8 +19,8 @@ class axis_reset_test extends axis_base_test;
 
     function void connect_phase(uvm_phase phase);
         super.connect_phase(phase);
-        if (!uvm_config_db#(virtual axis_if)::get(this, "", "vif", vif))
-            uvm_config_db#(virtual axis_if)::get(null, "uvm_test_top.env.master_agent*", "vif", vif);
+        if (!uvm_config_db#(axis_vif_t)::get(this, "", "vif", vif))
+            void'(uvm_config_db#(axis_vif_t)::get(null, "uvm_test_top.env.master_agent*", "vif", vif));
     endfunction
 
     task run_phase(uvm_phase phase);

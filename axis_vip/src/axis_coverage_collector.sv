@@ -3,7 +3,7 @@ class axis_coverage_collector extends uvm_component;
     `uvm_component_utils(axis_coverage_collector)
 
     axis_config cfg;
-    virtual axis_if vif;
+    axis_vif_t vif;
 
     uvm_analysis_imp_master_beat #(axis_transfer, axis_coverage_collector) master_beat_export;
     uvm_analysis_imp_slave_beat  #(axis_transfer, axis_coverage_collector) slave_beat_export;
@@ -181,7 +181,7 @@ class axis_coverage_collector extends uvm_component;
         super.build_phase(phase);
         if (!uvm_config_db#(axis_config)::get(this, "", "cfg", cfg))
             `uvm_fatal("NOCFG", "axis_config not found in config_db")
-        if (!uvm_config_db#(virtual axis_if)::get(this, "", "vif", vif))
+        if (!uvm_config_db#(axis_vif_t)::get(this, "", "vif", vif))
             `uvm_fatal("NOVIF", "Virtual interface not found in config_db")
         master_beat_export = new("master_beat_export", this);
         slave_beat_export  = new("slave_beat_export",  this);

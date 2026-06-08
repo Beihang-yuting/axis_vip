@@ -2,7 +2,7 @@ class axis_monitor extends uvm_monitor;
 
     `uvm_component_utils(axis_monitor)
 
-    virtual axis_if vif;
+    axis_vif_t vif;
     axis_config cfg;
 
     uvm_analysis_port #(axis_transfer) beat_ap;
@@ -22,7 +22,7 @@ class axis_monitor extends uvm_monitor;
         packet_ap = new("packet_ap", this);
         if (!uvm_config_db#(axis_config)::get(this, "", "cfg", cfg))
             `uvm_fatal("NOCFG", "axis_config not found in config_db")
-        if (!uvm_config_db#(virtual axis_if)::get(this, "", "vif", vif))
+        if (!uvm_config_db#(axis_vif_t)::get(this, "", "vif", vif))
             `uvm_fatal("NOVIF", "Virtual interface not found in config_db")
     endfunction
 

@@ -2,7 +2,7 @@ class axis_protocol_checker extends uvm_component;
 
     `uvm_component_utils(axis_protocol_checker)
 
-    virtual axis_if vif;
+    axis_vif_t vif;
     axis_config cfg;
     axis_protocol_checker_config checker_cfg;
 
@@ -14,7 +14,7 @@ class axis_protocol_checker extends uvm_component;
         super.build_phase(phase);
         if (!uvm_config_db#(axis_config)::get(this, "", "cfg", cfg))
             `uvm_fatal("NOCFG", "axis_config not found in config_db")
-        if (!uvm_config_db#(virtual axis_if)::get(this, "", "vif", vif))
+        if (!uvm_config_db#(axis_vif_t)::get(this, "", "vif", vif))
             `uvm_fatal("NOVIF", "Virtual interface not found in config_db")
         checker_cfg = cfg.checker_cfg;
     endfunction

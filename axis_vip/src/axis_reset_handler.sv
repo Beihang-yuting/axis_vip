@@ -2,7 +2,7 @@ class axis_reset_handler extends uvm_component;
 
     `uvm_component_utils(axis_reset_handler)
 
-    virtual axis_if vif;
+    axis_vif_t vif;
     axis_config cfg;
 
     uvm_event reset_asserted_evt;
@@ -23,7 +23,7 @@ class axis_reset_handler extends uvm_component;
         super.build_phase(phase);
         if (!uvm_config_db#(axis_config)::get(this, "", "cfg", cfg))
             `uvm_fatal("NOCFG", "axis_config not found in config_db")
-        if (!uvm_config_db#(virtual axis_if)::get(this, "", "vif", vif))
+        if (!uvm_config_db#(axis_vif_t)::get(this, "", "vif", vif))
             `uvm_fatal("NOVIF", "Virtual interface not found in config_db")
     endfunction
 

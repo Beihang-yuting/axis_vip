@@ -33,9 +33,12 @@ class axis_packet extends uvm_sequence_item;
     endfunction
 
     function void get_payload(ref bit [7:0] payload[$]);
+        int unsigned bl;
         payload.delete();
+        if (beats.size() == 0) return;
+        bl = (beats[0].cfg != null) ? beats[0].cfg.get_byte_lanes() : 64;
         foreach (beats[i]) begin
-            for (int b = 0; b < 64; b++) begin
+            for (int b = 0; b < bl; b++) begin
                 if (beats[i].tkeep[b])
                     payload.push_back(beats[i].tdata[b*8 +: 8]);
             end
