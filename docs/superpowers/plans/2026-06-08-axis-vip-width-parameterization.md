@@ -662,3 +662,47 @@ python3 /tmp/rcmd.py "cd /home/ubuntu/ryan/xilinx_pcie && git add -A && git comm
 - spec §5 向后兼容（32 位基线）→ Task 2 Step 7-10 + Task 3 ✓
 - spec §6 回归计划 → Task 0/3/8 ✓
 - spec §7 风险（tkeep byte/DW、factory override、config_db 参数对齐）→ Task 6 / Task 7 ✓
+
+---
+
+## 验证结果（2026-06-09 收尾）
+
+**验证环境变更：** 原计划 VCS 主机为 59，但 59 已无仿真器/license。实际在 **`ryan@10.11.10.61:2222`**（VCS Q-2020.03-SP2-7，`source ~/set-env.sh`）跑全部编译 + 回归。
+
+### axis_vip — 全绿 ✓
+编译通过；6/6 用例 `UVM_ERROR=0 / UVM_FATAL=0`：
+`axis_sanity_test` / `axis_backpressure_test` / `axis_bandwidth_test` / `axis_reset_test` / `axis_phase_jump_test` / `axis_full_regression_test`。
+
+### xilinx_pcie — 全绿 ✓
+四宽度 **64/128/256/512 全部编译通过**；所有用例 **数据不匹配 = 0**。
+
+| 用例 | DW=64 | 128 | 256 | 512 | 匹配数 |
+|---|---|---|---|---|---|
+| sanity | ✅ | ✅ | ✅ | ✅ | 22 |
+| straddle | n/a¹ | n/a¹ | ✅ | ✅ | 202 |
+| loopback | — | — | ✅ | — | 394 |
+| stress | — | — | ✅ | — | 502 |
+| mega_stress | — | — | ✅ | — | 10250 |
+
+¹ straddle 在 DW<256 设计上 FATAL（`env_config` 校验：straddle 需 DATA_WIDTH≥256），非缺陷。
+
+→ 位宽参数化 + tuser→512 + 四通道直连 **功能验证正确**（mega_stress 10250 TLP 零不匹配）。
+
+### 发现并修复 2 个遗留 bug（非本重构引入，独立子系统）
+
+1. **MSI 超时** — `ep_cfg_if` 的 `pcie_ip` 侧无人驱动 `cfg_interrupt_msi_sent`；responder 仅在 RC 角色运行，而发 MSI 的是 EP。修复：`xilinx_pcie_interrupt_agent.run_phase` 让 EP 角色也 fork 本地 IP 应答（`_rc_init_int_status`+`_rc_int_respond_loop`）。
+2. **loopback 在途读未排空** — `xilinx_pcie_loopback_test` 撤 objection 前无 drain。修复：轮询 `env.scb.outstanding_reqs` 清零（500us 上限）。
+
+修复均在 **59 xilinx_pcie 仓 commit `df628ec`**，复验后全绿。
+
+### 死配置清理
+`axis_params.svh` 删除已无人引用的 `AXIS_VIF_PARAMS` / `AXIS_VIF_INST` 宏（被各处真实宽度例化取代）；保留 `AXIS_MAX_*` 容器常量。本地 axis_work 仓 commit `84464ca`。
+
+### 提交记录
+| 仓库 | commit | 内容 |
+|---|---|---|
+| 本地 axis_work | `c830058` | tuser→512 + 约束溢出修复（Task 1） |
+| 本地 axis_work | `6401da1` | 结构组件参数化、去全局 `axis_vif_t`（Task 2） |
+| 本地 axis_work | `84464ca` | 删死配置宏 |
+| 59 xilinx_pcie | `959fefb` | 参数化直连重构（Task 4-7） |
+| 59 xilinx_pcie | `df628ec` | MSI ack + loopback drain 修复 |

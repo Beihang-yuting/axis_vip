@@ -246,3 +246,18 @@ typedef axis_agent#(`XILINX_DATA_W,4,4,`XILINX_CC_TUSER_W,0,1,1) axis_agent_cc_t
 - xilinx_pcie：**去桥接，8 条 axis_agent 按通道真实宽度参数化直连**。
 - 容器 tuser 宽度：512（覆盖 PG213 最大 375）。
 - axis_vip 默认宽度：32（保持回归基线）。
+
+---
+
+## 9. 验证收尾（2026-06-09，状态：CLOSED ✓）
+
+VCS 验证（`ryan@10.11.10.61:2222`，Q-2020.03-SP2-7）全绿：
+
+- **axis_vip**：6/6 用例 `UVM_ERROR/FATAL=0`。
+- **xilinx_pcie**：64/128/256/512 全编译；sanity 全宽度、straddle 256/512、loopback/stress/mega_stress@256 全绿；**数据不匹配恒 0**（mega_stress 10250 TLP）。
+- 验证中发现 2 个**遗留 bug（非本重构引入）**并修复（59 commit `df628ec`）：
+  1. MSI 超时 — EP 侧 cfg_if 缺本地 IP responder 驱动 `cfg_interrupt_msi_sent`。
+  2. loopback 撤 objection 前缺 drain，最后批 4096B 读 completion 未排空。
+- 清理：删除死宏 `AXIS_VIF_PARAMS`/`AXIS_VIF_INST`（本地 commit `84464ca`）。
+
+详细回归矩阵与提交记录见实现计划文档「验证结果」章节。
