@@ -49,4 +49,10 @@ package axis_pkg;
     `include "../sequences/axis_reset_recovery_vseq.sv"
     `include "../sequences/axis_full_stress_vseq.sv"
 
+    // ---- Optional net_packet bridge (enable: +define+AXIS_USE_NET_PACKET +incdir+<net_packet/src>) ----
+    `ifdef AXIS_USE_NET_PACKET
+        `include "core/packet.sv"                      // net_packet core: class packet + raw_data
+        `include "../sequences/axis_net_packet_seq.sv"
+    `endif
+
 endpackage
