@@ -35,10 +35,18 @@ class axis_slave_driver #(
             `uvm_fatal("NOVIF", "Virtual interface not found in config_db")
     endfunction
 
+    // Reset is active if the env-level handler flagged it OR aresetn is asserted
+    // directly. Honoring aresetn keeps the slave correct even when no env-level
+    // reset_handler is wired (e.g. external integration).
+    protected function bit reset_active();
+        bit lvl = (cfg.reset_polarity == AXIS_RESET_ACTIVE_LOW) ? 1'b0 : 1'b1;
+        return in_reset || (vif.aresetn === lvl);
+    endfunction
+
     task run_phase(uvm_phase phase);
         drive_reset_values();
         forever begin
-            if (in_reset) begin
+            if (reset_active()) begin
                 drive_reset_values();
                 valid_seen = 0;
                 delay_counter = 0;

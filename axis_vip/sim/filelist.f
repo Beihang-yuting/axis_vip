@@ -18,6 +18,7 @@
 ../tests/axis_reset_test.sv
 ../tests/axis_phase_jump_test.sv
 ../tests/axis_full_regression_test.sv
+../tests/axis_misalign_test.sv
 
 // DUT
 ../tb/axis_dummy_dut.sv

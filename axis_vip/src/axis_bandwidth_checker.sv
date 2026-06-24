@@ -43,9 +43,17 @@ class axis_bandwidth_checker #(
     endfunction
 
     task run_phase(uvm_phase phase);
+        bit lvl = (cfg.reset_polarity == AXIS_RESET_ACTIVE_LOW) ? 1'b0 : 1'b1;
         if (!cfg.bw_check_enable) return;
         forever begin
             @(posedge vif.aclk);
+            // Drop the window across reset so reset cycles don't dilute the
+            // measured bandwidth (which could otherwise trip a false BW_MIN).
+            if (vif.aresetn === lvl) begin
+                bytes_in_window = 0;
+                cycle_counter   = 0;
+                continue;
+            end
             cycle_counter++;
             if (cycle_counter >= cfg.bw_window_cycles) begin
                 evaluate_window();

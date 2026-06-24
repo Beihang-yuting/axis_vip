@@ -62,6 +62,7 @@ regression:
 	$(MAKE) run TEST=axis_reset_test
 	$(MAKE) run TEST=axis_phase_jump_test
 	$(MAKE) run TEST=axis_full_regression_test
+	$(MAKE) run TEST=axis_misalign_test
 
 clean:
 	rm -rf simv simv.dbin csrc work xcelium.d INCA_libs *.log *.key DVEfiles ucli.key

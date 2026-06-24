@@ -43,9 +43,17 @@ class axis_monitor #(
         join
     endtask
 
+    // Reset is active if the env-level handler flagged it OR aresetn is asserted
+    // directly. Honoring aresetn stops the monitor from sampling garbage beats
+    // during reset even when no env-level reset_handler is wired.
+    protected function bit reset_active();
+        bit lvl = (cfg.reset_polarity == AXIS_RESET_ACTIVE_LOW) ? 1'b0 : 1'b1;
+        return in_reset || (vif.aresetn === lvl);
+    endfunction
+
     protected task sample_loop();
         forever begin
-            if (in_reset) begin
+            if (reset_active()) begin
                 flush_in_progress();
                 @(posedge vif.aclk);
                 continue;
@@ -61,7 +69,7 @@ class axis_monitor #(
         // Only active in TIMEOUT mode
         forever begin
             @(posedge vif.aclk);
-            if (in_reset || cfg.pkt_boundary_mode != PKT_BOUNDARY_TIMEOUT)
+            if (reset_active() || cfg.pkt_boundary_mode != PKT_BOUNDARY_TIMEOUT)
                 continue;
             begin
                 bit [15:0] tids_to_flush[$];

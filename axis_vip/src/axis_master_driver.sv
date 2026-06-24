@@ -47,8 +47,27 @@ class axis_master_driver #(
         end
     endtask
 
+    // Hold tvalid low until reset is truly released, then return aligned to a
+    // master_cb edge. Steady-state (out of reset) the loop body never executes,
+    // so back-to-back / zero-idle throughput is unaffected. Honors aresetn
+    // directly so it is correct even when no env-level reset_handler is wired.
+    protected task wait_reset_release();
+        bit rst_active_level = (cfg.reset_polarity == AXIS_RESET_ACTIVE_LOW) ? 1'b0 : 1'b1;
+        while (in_reset || (vif.aresetn === rst_active_level)) begin
+            vif.master_cb.tvalid <= 1'b0;
+            @(vif.master_cb);
+        end
+    endtask
+
     protected task drive_transfer(axis_transfer tr);
         int unsigned idle_cycles;
+        wait_reset_release();
+        // tr may arrive mid-cycle (sequencer hands it over un-aligned to aclk).
+        // Re-sync to a clocking edge before driving so the first assertion is not
+        // missed. Only when starting from idle (tvalid low) — during back-to-back
+        // tvalid is already high, so this is skipped and zero-idle throughput is
+        // preserved (no bubble inserted between beats).
+        if (vif.tvalid !== 1'b1) @(vif.master_cb);
         case (cfg.valid_gen_mode)
             VALID_WEIGHTED, VALID_BURST_PAUSE, VALID_PROFILE: begin
                 while (!bw_ctrl.should_assert_valid()) begin
