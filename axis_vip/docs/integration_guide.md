@@ -550,6 +550,17 @@ m_cfg.reset_sync_mode  = AXIS_RESET_SYNC;         // 或 ASYNC
 m_cfg.hot_reset_enable = 1;                       // 允许传输中热复位
 ```
 
+### 复位感知（组件级，直接采样 aresetn）
+
+数据通路组件除响应 env 级 `axis_reset_handler` 翻转的软标志外，**还直接采样 `vif.aresetn`**（按 `cfg.reset_polarity` 判定有效电平）：
+
+- `axis_master_driver`：复位有效期间不拉 `tvalid`；解复位后第一拍前对齐到时钟沿再驱动（见 §12 首拍对齐）。
+- `axis_slave_driver`：复位有效期间压低 `tready`。
+- `axis_monitor`：复位有效期间不采样，避免抓到复位中的垃圾拍。
+- `axis_bandwidth_checker`：复位期间清空当前统计窗口，避免复位周期稀释带宽、误报 `BW_MIN`。
+
+**外部集成意义**：即使你**不实例化 / 不接 `rst_handler`**（自有 tb 自管复位），上述组件也能据 `aresetn` 自行门控，不会在复位中误驱动或误采样。
+
 ### 复位恢复 vseq（`axis_reset_recovery_vseq`）
 
 流程：发 `pre_reset_packets` → 强制复位 `reset_duration_cycles` → 解复位 → 发 `post_reset_packets`，并走状态机 `NORMAL → RECOVERY → DONE`。
@@ -605,12 +616,17 @@ make run TEST=axis_sanity_test SEED=random VERBOSITY=UVM_MEDIUM
 # 切工具
 make run TEST=axis_sanity_test TOOL=xcelium    # 或 questa
 
-# 回归（6 个内置测试）
+# 回归（7 个内置测试）
 make regression
+
+# 首拍对齐回归（验证未对齐零延时不丢首拍，见 §12）
+make run TEST=axis_misalign_test
 
 # 清理
 make clean
 ```
+
+> `axis_misalign_test`：故意让首个 sequence item 在非时钟沿到达（`#203` 偏 3ns）且零延时驱动，统计 master monitor 实抓拍数 == 序列意图拍数（16）。**注意**：loopback + monitor 比对的 scoreboard 看不到"均匀丢拍"（master/slave 同步丢仍 match），故此测试改用"意图 vs master monitor 实抓"计数来暴露首拍吞没。
 
 外部集成时把 `FILELIST` 指向你的 filelist（编辑 Makefile 的 `FILELIST` 变量，或自建 Makefile 复用相同选项）。
 
@@ -657,4 +673,6 @@ endclass
 - TUSER 不进 scoreboard 比对，作为边带流控信号时只能在激励侧生成，需自行校验。
 - 直接赋值风格的 seq（single_transfer / idle）绕过宽度约束，赋值不要超 cfg 宽度。
 - `axis_reset_recovery_vseq` 的 `uvm_hdl_force` 路径写死 `tb_top.aresetn`，外部 tb 顶层名/信号名不同需改。
+- **首拍对齐**：sequence item 经 sequencer 交给 master driver 的时刻**未必对齐时钟上升沿**；零延时（`VALID_ZERO_IDLE` / `inter_beat_delay==0`）下，未对齐会导致首拍 `tvalid` 落在非沿时刻而被吞。`axis_master_driver` 在每次"从空闲起步"（`tvalid` 当前为低）时会先对齐到时钟沿再驱动；背靠背（`tvalid` 已高）则跳过，不插气泡、不损满吞吐。回归由 `axis_misalign_test` 守护。
+- **丢拍的可观测性**：loopback 拓扑下若首拍根本未驱动，master monitor 与 slave 会**同样**漏掉它，scoreboard 仍判 match —— 看不出丢拍。要检出须比"序列意图拍数 vs master monitor 实抓拍数"（见 `axis_misalign_test`）。
 - 调试参考 `axis_vip/docs/vcs_debug_guide.md`。
