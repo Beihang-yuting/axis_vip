@@ -5,13 +5,14 @@ class axis_monitor #(
     parameter int TUSER_WIDTH = 1,
     parameter bit HAS_TSTRB   = 0,
     parameter bit HAS_TKEEP   = 1,
-    parameter bit HAS_TLAST   = 1
+    parameter bit HAS_TLAST   = 1,
+    parameter int TKEEP_WIDTH = TDATA_WIDTH/8
 ) extends uvm_monitor;
 
-    `uvm_component_param_utils(axis_monitor#(TDATA_WIDTH,TID_WIDTH,TDEST_WIDTH,TUSER_WIDTH,HAS_TSTRB,HAS_TKEEP,HAS_TLAST))
+    `uvm_component_param_utils(axis_monitor#(TDATA_WIDTH,TID_WIDTH,TDEST_WIDTH,TUSER_WIDTH,HAS_TSTRB,HAS_TKEEP,HAS_TLAST,TKEEP_WIDTH))
 
     typedef virtual axis_if #(TDATA_WIDTH, TID_WIDTH, TDEST_WIDTH,
-                              TUSER_WIDTH, HAS_TSTRB, HAS_TKEEP, HAS_TLAST) vif_t;
+                              TUSER_WIDTH, HAS_TSTRB, HAS_TKEEP, HAS_TLAST, TKEEP_WIDTH) vif_t;
     vif_t vif;
     axis_config cfg;
 

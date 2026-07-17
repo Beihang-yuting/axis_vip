@@ -5,14 +5,15 @@ class axis_agent #(
     parameter int TUSER_WIDTH = 1,
     parameter bit HAS_TSTRB   = 0,
     parameter bit HAS_TKEEP   = 1,
-    parameter bit HAS_TLAST   = 1
+    parameter bit HAS_TLAST   = 1,
+    parameter int TKEEP_WIDTH = TDATA_WIDTH/8
 ) extends uvm_agent;
 
-    `uvm_component_param_utils(axis_agent#(TDATA_WIDTH,TID_WIDTH,TDEST_WIDTH,TUSER_WIDTH,HAS_TSTRB,HAS_TKEEP,HAS_TLAST))
+    `uvm_component_param_utils(axis_agent#(TDATA_WIDTH,TID_WIDTH,TDEST_WIDTH,TUSER_WIDTH,HAS_TSTRB,HAS_TKEEP,HAS_TLAST,TKEEP_WIDTH))
 
-    typedef axis_master_driver#(TDATA_WIDTH,TID_WIDTH,TDEST_WIDTH,TUSER_WIDTH,HAS_TSTRB,HAS_TKEEP,HAS_TLAST) m_drv_t;
-    typedef axis_slave_driver #(TDATA_WIDTH,TID_WIDTH,TDEST_WIDTH,TUSER_WIDTH,HAS_TSTRB,HAS_TKEEP,HAS_TLAST) s_drv_t;
-    typedef axis_monitor      #(TDATA_WIDTH,TID_WIDTH,TDEST_WIDTH,TUSER_WIDTH,HAS_TSTRB,HAS_TKEEP,HAS_TLAST) mon_t;
+    typedef axis_master_driver#(TDATA_WIDTH,TID_WIDTH,TDEST_WIDTH,TUSER_WIDTH,HAS_TSTRB,HAS_TKEEP,HAS_TLAST,TKEEP_WIDTH) m_drv_t;
+    typedef axis_slave_driver #(TDATA_WIDTH,TID_WIDTH,TDEST_WIDTH,TUSER_WIDTH,HAS_TSTRB,HAS_TKEEP,HAS_TLAST,TKEEP_WIDTH) s_drv_t;
+    typedef axis_monitor      #(TDATA_WIDTH,TID_WIDTH,TDEST_WIDTH,TUSER_WIDTH,HAS_TSTRB,HAS_TKEEP,HAS_TLAST,TKEEP_WIDTH) mon_t;
 
     axis_config              cfg;
     axis_sequencer           sqr;

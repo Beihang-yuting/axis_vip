@@ -5,7 +5,10 @@ interface axis_if #(
     parameter int TUSER_WIDTH = 512,   // 默认最大值，兼容 PCIe tuser 各通道宽度
     parameter bit HAS_TSTRB   = 1,
     parameter bit HAS_TKEEP   = 1,
-    parameter bit HAS_TLAST   = 1
+    parameter bit HAS_TLAST   = 1,
+    // tkeep 粒度 (per-instance): 默认 per-byte (TDATA/8, 标准 AXIS/ETH 原样)。
+    // Xilinx PG213 PCIe 传 TDATA_WIDTH/32 (per-DWORD) 以匹配真实 DUT 的 tkeep。
+    parameter int TKEEP_WIDTH = TDATA_WIDTH/8
 )(
     input logic aclk,
     input logic aresetn
@@ -15,7 +18,7 @@ interface axis_if #(
     logic                       tready;
     logic [TDATA_WIDTH-1:0]     tdata;
     logic [TDATA_WIDTH/8-1:0]   tstrb;
-    logic [TDATA_WIDTH/8-1:0]   tkeep;
+    logic [TKEEP_WIDTH-1:0]     tkeep;
     logic                       tlast;
     logic [TID_WIDTH-1:0]       tid;
     logic [TDEST_WIDTH-1:0]     tdest;
