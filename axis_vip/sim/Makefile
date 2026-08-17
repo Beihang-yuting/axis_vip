@@ -64,7 +64,20 @@ regression:
 	$(MAKE) run TEST=axis_full_regression_test
 	$(MAKE) run TEST=axis_misalign_test
 
-clean:
-	rm -rf simv simv.dbin csrc work xcelium.d INCA_libs *.log *.key DVEfiles ucli.key
+raw_binding_compile:
+	vcs -full64 -sverilog -timescale=1ns/1ps -debug_access+all \
+		../src/axis_if.sv ../tests/axis_if_raw_binding_tb.sv \
+		-top axis_if_raw_binding_tb -o simv_raw_binding \
+		-l raw_binding_compile.log
+	! grep -Eq 'Warning-\[(ICPSD_W|ICPD_W)\]' raw_binding_compile.log
 
-.PHONY: compile run regression clean vcs_compile vcs_run xcelium_compile xcelium_run questa_compile questa_run
+raw_binding_run: raw_binding_compile
+	./simv_raw_binding -l raw_binding_run.log
+	grep -Fq 'AXIS_IF_RAW_BINDING_PASS' raw_binding_run.log
+
+clean:
+	rm -rf simv simv.dbin simv_raw_binding simv_raw_binding.daidir \
+		csrc work xcelium.d INCA_libs *.log *.key DVEfiles ucli.key
+
+.PHONY: compile run regression clean vcs_compile vcs_run xcelium_compile \
+	xcelium_run questa_compile questa_run raw_binding_compile raw_binding_run
