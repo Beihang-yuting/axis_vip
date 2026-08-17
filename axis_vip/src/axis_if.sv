@@ -14,41 +14,74 @@ interface axis_if #(
     input logic aresetn
 );
 
-    logic                       tvalid;
-    logic                       tready;
-    logic [TDATA_WIDTH-1:0]     tdata;
-    logic [TDATA_WIDTH/8-1:0]   tstrb;
-    logic [TKEEP_WIDTH-1:0]     tkeep;
-    logic                       tlast;
-    logic [TID_WIDTH-1:0]       tid;
-    logic [TDEST_WIDTH-1:0]     tdest;
-    logic [TUSER_WIDTH-1:0]     tuser;
+    wire logic                       tvalid;
+    wire logic                       tready;
+    wire logic [TDATA_WIDTH-1:0]     tdata;
+    wire logic [TDATA_WIDTH/8-1:0]   tstrb;
+    wire logic [TKEEP_WIDTH-1:0]     tkeep;
+    wire logic                       tlast;
+    wire logic [TID_WIDTH-1:0]       tid;
+    wire logic [TDEST_WIDTH-1:0]     tdest;
+    wire logic [TUSER_WIDTH-1:0]     tuser;
 
-    // Master clocking block
+    wire logic                       master_tvalid;
+    wire logic [TDATA_WIDTH-1:0]     master_tdata;
+    wire logic [TDATA_WIDTH/8-1:0]   master_tstrb;
+    wire logic [TKEEP_WIDTH-1:0]     master_tkeep;
+    wire logic                       master_tlast;
+    wire logic [TID_WIDTH-1:0]       master_tid;
+    wire logic [TDEST_WIDTH-1:0]     master_tdest;
+    wire logic [TUSER_WIDTH-1:0]     master_tuser;
+    wire logic                       slave_tready;
+
+    assign tvalid = master_tvalid;
+    assign tdata = master_tdata;
+    assign tstrb = master_tstrb;
+    assign tkeep = master_tkeep;
+    assign tlast = master_tlast;
+    assign tid = master_tid;
+    assign tdest = master_tdest;
+    assign tuser = master_tuser;
+    assign tready = slave_tready;
+
     clocking master_cb @(posedge aclk);
         default input #1step output #0;
-        output tvalid, tdata, tstrb, tkeep, tlast, tid, tdest, tuser;
-        input  tready;
+        output tvalid = master_tvalid;
+        output tdata = master_tdata;
+        output tstrb = master_tstrb;
+        output tkeep = master_tkeep;
+        output tlast = master_tlast;
+        output tid = master_tid;
+        output tdest = master_tdest;
+        output tuser = master_tuser;
+        input tready;
     endclocking
 
-    // Slave clocking block
     clocking slave_cb @(posedge aclk);
         default input #1step output #0;
-        output tready;
-        input  tvalid, tdata, tstrb, tkeep, tlast, tid, tdest, tuser;
+        output tready = slave_tready;
+        input tvalid, tdata, tstrb, tkeep, tlast, tid, tdest, tuser;
     endclocking
 
-    // Monitor clocking block — sample after NBA settles (Observed region)
-    // so DUT registered outputs are visible in the same cycle they are driven
     clocking monitor_cb @(posedge aclk);
         default input #0;
         input tvalid, tready, tdata, tstrb, tkeep, tlast, tid, tdest, tuser;
     endclocking
 
-    // Modports
     modport master_mp  (clocking master_cb,  input aclk, aresetn);
     modport slave_mp   (clocking slave_cb,   input aclk, aresetn);
     modport monitor_mp (clocking monitor_cb, input aclk, aresetn);
+
+    modport dut_slave_mp (
+        input aclk, aresetn,
+        input tvalid, tdata, tstrb, tkeep, tlast, tid, tdest, tuser,
+        output tready
+    );
+    modport dut_master_mp (
+        input aclk, aresetn,
+        output tvalid, tdata, tstrb, tkeep, tlast, tid, tdest, tuser,
+        input tready
+    );
 
     // Protocol checker control signals (set by UVM axis_protocol_checker)
     logic        chk_en_tvalid_stability;
