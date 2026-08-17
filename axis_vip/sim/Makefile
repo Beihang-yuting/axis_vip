@@ -86,11 +86,26 @@ raw_modport_run: raw_modport_compile
 	./simv_raw_modport -l raw_modport_run.log
 	grep -Fq 'AXIS_IF_RAW_MODPORT_PASS' raw_modport_run.log
 
+reset_init_compile:
+	vcs -full64 -sverilog -timescale=1ns/1ps -debug_access+all \
+		../src/axis_if.sv ../src/axis_protocol_checker_sva.sv \
+		../tests/axis_if_reset_init_tb.sv \
+		-top axis_if_reset_init_tb -o simv_reset_init \
+		-l reset_init_compile.log
+	! grep -Eq 'Warning-\[(ICPSD_W|ICPD_W)\]' reset_init_compile.log
+
+reset_init_run: reset_init_compile
+	./simv_reset_init -l reset_init_run.log
+	grep -Fq 'AXIS_IF_RESET_INIT_PASS' reset_init_run.log
+	! grep -Fq '[RESET_SIGNAL_CHECK]' reset_init_run.log
+	! grep -Eq '^Error:' reset_init_run.log
+
 clean:
 	rm -rf simv simv.dbin simv_raw_binding simv_raw_binding.daidir \
 		simv_raw_modport simv_raw_modport.daidir \
+		simv_reset_init simv_reset_init.daidir \
 		csrc work xcelium.d INCA_libs *.log *.key DVEfiles ucli.key
 
 .PHONY: compile run regression clean vcs_compile vcs_run xcelium_compile \
 	xcelium_run questa_compile questa_run raw_binding_compile raw_binding_run \
-	raw_modport_compile raw_modport_run
+	raw_modport_compile raw_modport_run reset_init_compile reset_init_run
