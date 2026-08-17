@@ -114,7 +114,7 @@ module tb_top;
   typedef virtual axis_if #(64,1,1,1,0,1,1) my_vif_t;
 ```
 
-vif 下发须按拓扑选用。以下写法互斥，代码片段均放在 `tb_top` 的 `endmodule` 之前。
+vif 下发须按拓扑选用，以下写法互斥：写法 A 可直接追加到前述只声明 `axis_in` 的单接口 `tb_top` 骨架；写法 B 不适用于该骨架，必须配合下方同时声明 `axis_in`、`axis_out` 并连接 DUT 输出的双接口 binding/configuration excerpt 使用。
 
 #### 写法 A：真实 DUT 单接口 —— 仅一个 VIP agent active
 
@@ -140,7 +140,7 @@ s_cfg.is_active  = UVM_PASSIVE;
 
 #### 写法 B：真实 DUT 双接口 —— 无重叠的显式路径
 
-适用：master 与 slave 接**不同**接口（典型 DUT：输入口 + 输出口）。每个目标只设置一次，避免 UVM config_db 重叠匹配带来的顺序依赖。
+适用：master 与 slave 接**不同**接口（典型 DUT：输入口 + 输出口）。本片段假定 `tb_top` 已像下方双接口 excerpt 一样声明并连接 `axis_in`、`axis_out`；每个目标只设置一次，避免 UVM config_db 重叠匹配带来的顺序依赖。
 
 ```systemverilog
   initial begin
