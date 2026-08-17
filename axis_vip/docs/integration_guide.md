@@ -706,6 +706,10 @@ make regression
 # 首拍对齐回归（验证未对齐零延时不丢首拍，见 §12）
 make run TEST=axis_misalign_test
 
+# 公共 nets 的 scalar 绑定与 raw modport 绑定
+make raw_binding_run
+make raw_modport_run
+
 # 清理
 make clean
 ```

@@ -75,9 +75,22 @@ raw_binding_run: raw_binding_compile
 	./simv_raw_binding -l raw_binding_run.log
 	grep -Fq 'AXIS_IF_RAW_BINDING_PASS' raw_binding_run.log
 
+raw_modport_compile:
+	vcs -full64 -sverilog -timescale=1ns/1ps -debug_access+all \
+		../src/axis_if.sv ../tests/axis_if_raw_modport_tb.sv \
+		-top axis_if_raw_modport_tb -o simv_raw_modport \
+		-l raw_modport_compile.log
+	! grep -Eq 'Warning-\[(ICPSD_W|ICPD_W)\]' raw_modport_compile.log
+
+raw_modport_run: raw_modport_compile
+	./simv_raw_modport -l raw_modport_run.log
+	grep -Fq 'AXIS_IF_RAW_MODPORT_PASS' raw_modport_run.log
+
 clean:
 	rm -rf simv simv.dbin simv_raw_binding simv_raw_binding.daidir \
+		simv_raw_modport simv_raw_modport.daidir \
 		csrc work xcelium.d INCA_libs *.log *.key DVEfiles ucli.key
 
 .PHONY: compile run regression clean vcs_compile vcs_run xcelium_compile \
-	xcelium_run questa_compile questa_run raw_binding_compile raw_binding_run
+	xcelium_run questa_compile questa_run raw_binding_compile raw_binding_run \
+	raw_modport_compile raw_modport_run
