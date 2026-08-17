@@ -34,7 +34,7 @@ interface axis_if #(
     wire logic [TUSER_WIDTH-1:0]     master_tuser;
     wire logic                       slave_tready;
 
-    assign tvalid = master_tvalid;
+    assign tvalid = aresetn ? master_tvalid : 1'b0;
     assign tdata = master_tdata;
     assign tstrb = master_tstrb;
     assign tkeep = master_tkeep;
