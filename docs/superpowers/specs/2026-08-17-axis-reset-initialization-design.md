@@ -1,7 +1,9 @@
 # AXIS Interface Reset Initialization Design
 
-**Date:** 2026-08-17  
-**Scope:** `axis_vip` interface reset behavior and focused VCS regression  
+**Date:** 2026-08-17
+
+**Scope:** `axis_vip` interface reset behavior and focused VCS regression
+
 **Goal:** Keep canonical `tvalid` low from time zero while active-low reset is
 asserted, without hiding a real DUT reset violation or reintroducing clocking/DUT
 multiple-driver warnings.
