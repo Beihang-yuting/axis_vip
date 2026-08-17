@@ -114,11 +114,11 @@ module tb_top;
   typedef virtual axis_if #(64,1,1,1,0,1,1) my_vif_t;
 ```
 
-vif 下发**两种写法，按拓扑选用**：
+vif 下发须按拓扑选用。以下写法互斥，代码片段均放在 `tb_top` 的 `endmodule` 之前。
 
-#### 写法 A：单接口全环境 —— 一条通配（最简）
+#### 写法 A：真实 DUT 单接口 —— 仅一个 VIP agent active
 
-适用：master / slave / checker / handler 全部挂在**同一个**接口上（如本例只有一个 `axis_in`）。
+适用：真实 DUT 只暴露一个被测 AXIS port（如上例只有一个 DUT slave 输入口 `axis_in`）。env 的组件可以都观察同一 link，但 DUT 已经产生的逻辑方向不能再由 VIP driver 产生。
 
 ```systemverilog
   initial begin
@@ -127,16 +127,25 @@ vif 下发**两种写法，按拓扑选用**：
 endmodule
 ```
 
-`env.*` 匹配 env 下所有需要 `vif` 的子组件，全部拿同一接口。
+`env.*` 匹配 env 下所有需要 `vif` 的子组件，全部拿同一接口；它只完成 vif 绑定，不决定 agent 是否驱动。对上面的 DUT slave 输入口，VIP master 产生 `tvalid/tdata/...`，DUT 产生 `tready`，所以配置必须是：
 
-#### 写法 B：显式逐路径（最清晰、可分接口）
+```systemverilog
+m_cfg.agent_mode = AXIS_MASTER;
+m_cfg.is_active  = UVM_ACTIVE;
+s_cfg.agent_mode = AXIS_MONITOR_ONLY;
+s_cfg.is_active  = UVM_PASSIVE;
+```
 
-适用：master 与 slave 接**不同**接口（典型 DUT：输入口 + 输出口），或想显式控制每个组件。
+若单接口连接的是 DUT master 输出口，则反过来让 master agent 为 `AXIS_MONITOR_ONLY` / `UVM_PASSIVE`，slave agent 为 `AXIS_SLAVE` / `UVM_ACTIVE`，由 slave driver 单独产生 `tready`。同一个 interface 上 master/slave agent 都 active 只适用于**没有真实 RTL producer** 的纯 VIP-to-VIP loopback；不要用于真实 DUT 单端口连接。
+
+#### 写法 B：真实 DUT 双接口 —— 无重叠的显式路径
+
+适用：master 与 slave 接**不同**接口（典型 DUT：输入口 + 输出口）。每个目标只设置一次，避免 UVM config_db 重叠匹配带来的顺序依赖。
 
 ```systemverilog
   initial begin
     uvm_config_db#(my_vif_t)::set(null,"uvm_test_top.env.master_agent*","vif",axis_in);
-    uvm_config_db#(my_vif_t)::set(null,"uvm_test_top.env.slave_agent*", "vif",axis_in);
+    uvm_config_db#(my_vif_t)::set(null,"uvm_test_top.env.slave_agent*", "vif",axis_out);
     uvm_config_db#(my_vif_t)::set(null,"uvm_test_top.env.rst_handler",  "vif",axis_in);
     uvm_config_db#(my_vif_t)::set(null,"uvm_test_top.env.proto_checker","vif",axis_in);
     uvm_config_db#(my_vif_t)::set(null,"uvm_test_top.env.bw_checker",   "vif",axis_in);
@@ -148,17 +157,9 @@ endmodule
 
 env 的 7 个子组件实例名：`master_agent` / `slave_agent` / `rst_handler` / `proto_checker` / `bw_checker` / `phase_ctrl` / `cov`。
 
-#### 双接口拓扑（输入口 + 输出口）—— 写法 B 变体
+> **避免重叠设置**：不要先用 `env.*` 绑定 `axis_in`，再用 `env.slave_agent*` 试图覆盖成 `axis_out`。在 UVM 1.2 的同一 precedence level，重叠设置是 last-setting-wins，而不是 glob pattern 越具体越优先，因此结果依赖 `set()` 顺序。双接口统一使用写法 B 的无重叠显式路径。
 
-```systemverilog
-  // 默认全给输入接口，slave_agent 单独改输出接口
-  uvm_config_db#(my_vif_t)::set(null,"uvm_test_top.env.*",            "vif", in_if);
-  uvm_config_db#(my_vif_t)::set(null,"uvm_test_top.env.slave_agent*", "vif", out_if);
-```
-
-> **优先级提示**：双接口下 `env.*` 与 `env.slave_agent*` 对 slave 都匹配，靠 UVM config_db 优先级裁决（更具体路径胜）。保险起见把 slave 那条写明确，或干脆全部显式逐路径（写法 B）。单接口（写法 A）无此问题。
-
-一个 `axis_if` 只表示一条**单向** AXIS link。对同时具有 AXIS 输入和 AXIS 输出的 DUT，使用两个 interface：master agent 在 `axis_in` 上产生 DUT 输入，slave agent 在 `axis_out` 上响应 DUT 输出；两者仍属于同一个 `axis_env`，不需要为输入和输出各建一套完整 env。下面是使用普通 RTL scalar ports 的完整 `tb_top` 连接示例：
+一个 `axis_if` 只表示一条**单向** AXIS link。对同时具有 AXIS 输入和 AXIS 输出的 DUT，使用两个 interface：master agent 在 `axis_in` 上产生 DUT 输入，slave agent 在 `axis_out` 上响应 DUT 输出；两者仍属于同一个 `axis_env`，不需要为输入和输出各建一套完整 env。下面是 `tb_top` 中使用普通 RTL scalar ports 的 binding/configuration excerpt：
 
 ```systemverilog
 `timescale 1ns/1ps
@@ -212,6 +213,8 @@ module tb_top;
 endmodule
 ```
 
+为突出 DUT 与 vif 绑定，上述 excerpt 没有实例化 `axis_protocol_checker_sva`。其中单个 env 的 `proto_checker` 绑定在输入侧 `axis_in`，只负责把 `cfg.checker_cfg` 的 enable bits 写到该 interface；enable 只有在同一 interface 上实际实例化了 `axis_protocol_checker_sva` 时才会产生 assertion。需要 SVA 时按 §10 实例化。若还要检查输出侧，除在 `axis_out` 上实例化 SVA 外，还须另行把 checker enable bits 配置到 `axis_out`；本例这一套 env 的 `proto_checker` 不覆盖输出侧。
+
 `axis_agent` 的每个实例都可独立配置成 `AXIS_MASTER`、`AXIS_SLAVE` 或 `AXIS_MONITOR_ONLY`；角色属于 agent，不属于 interface。上例的 active master 是 `axis_in` 上 `tvalid/tdata/...` 方向的 producer，active slave 是 `axis_out` 上 `tready` 方向的 producer。
 
 真实 RTL 应连接 interface 的公共 `t*` nets：既可像上例使用普通 scalar ports，也可让支持 SystemVerilog interface ports 的 DUT 使用 raw modport。DUT 的 AXIS 入口必须声明为 `dut_slave_mp`，DUT 的 AXIS 出口必须声明为 `dut_master_mp`，例如：
@@ -238,7 +241,7 @@ my_dut dut (
 
 ### 步骤 3：自有 test
 
-参照 `tests/axis_base_test.sv`。env 用与参数包一致的 typedef，cfg 与参数包对齐：
+参照 `tests/axis_base_test.sv`。env 用与参数包一致的 typedef，cfg 与参数包对齐。下面两个 agent 都 active 的配置**仅对应前述真实 DUT 双接口示例**：它们分别位于 `axis_in` 和 `axis_out` 两条独立 link，不可直接用于写法 A 的真实 DUT 单接口拓扑。
 
 ```systemverilog
 class my_test extends uvm_test;
@@ -259,6 +262,7 @@ class my_test extends uvm_test;
     m_cfg.TDATA_WIDTH = 64; m_cfg.HAS_TSTRB = 0; m_cfg.TUSER_WIDTH = 1;
     s_cfg.TDATA_WIDTH = 64; s_cfg.HAS_TSTRB = 0; s_cfg.TUSER_WIDTH = 1;
 
+    // 仅适用于两个独立 link：master 驱 axis_in，slave 驱 axis_out 的 tready
     m_cfg.agent_mode = AXIS_MASTER; m_cfg.is_active = UVM_ACTIVE;
     s_cfg.agent_mode = AXIS_SLAVE;  s_cfg.is_active = UVM_ACTIVE;
 
@@ -275,7 +279,7 @@ endclass
 - **参数包三处一致**：tb 里 `axis_if` 实例、`axis_env` typedef、`virtual axis_if` (vif) typedef 的 7 个参数必须完全相同。
 - **cfg 跟参数包对齐**：`TDATA_WIDTH / TUSER_WIDTH / HAS_TSTRB / HAS_TKEEP / HAS_TLAST` 等运行期字段须与参数包一致。
 - **一条 link 一个 interface**：DUT 输入/输出 pair 使用两个独立 `axis_if`，通常仍由一套 env 中的 master/slave agent 分别绑定。
-- **每个方向单一 producer**：RTL 使用 scalar ports 或 `dut_slave_mp` / `dut_master_mp` 连接公共 nets，不通过 clocking-block state 更新 RTL，也不直接 procedural assignment 公共 nets。
+- **每个方向单一 producer**：RTL 使用 scalar ports 或 `dut_slave_mp` / `dut_master_mp` 连接公共 nets，不通过 clocking-block state 更新 RTL，也不直接 procedural assignment 公共 nets。真实 DUT 单接口只启用与 DUT 互补的一个 VIP driver；真实 DUT 双接口才按上例分别启用两个 active agent。
 
 ---
 
