@@ -675,8 +675,11 @@ drain；freeze 后发起的请求会在 sequencer arbitration 之外等待 recov
 
 reset freeze 与 phase-drain freeze 是两个独立 reason；公开的 `reset_active` 是为旧
 sequence 保留的兼容 aggregate view，值为两个 reason 的 OR。即使 sequencer gate
-能够强制阻止 admission，custom sequence 仍应在每个 item 的 `start_item()` 前调用
-`should_stop()`，这样 freeze 到来时可以及时返回，而不是一直等待 recovery。
+能够强制阻止 admission，继承 `axis_base_seq` 的 custom sequence 仍应在每个 item
+的 `start_item()` 前调用 `should_stop()`；直接继承原生 `uvm_sequence` 时则应实现
+等价的 aggregate-freeze check / early-return helper。两者都是 cooperative guard，
+用于 freeze 到来时及时返回而不是一直等待 recovery；权威安全边界仍是
+`axis_sequencer::wait_for_grant()` gate。
 
 `axis_sequencer` 用
 `begin_driver_item()` / `end_driver_item()` 记录从 `get_next_item()` 返回到
