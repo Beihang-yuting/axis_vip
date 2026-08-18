@@ -39,15 +39,24 @@ class axis_phase_controller #(
         super.phase_started(phase);
         if (phase_jump_pending) begin
             phase_jump_pending = 0;
-            foreach (agents[i]) begin
-                if (agents[i].sqr != null)
-                    agents[i].sqr.set_reset_active(0);
+            if (rst_handler != null && rst_handler.is_in_reset) begin
+                `uvm_info(get_type_name(),
+                    "Phase jump recovery: preserving sequencer freeze during reset",
+                    UVM_LOW)
+            end else begin
+                foreach (agents[i]) begin
+                    if (agents[i].sqr != null)
+                        agents[i].sqr.set_reset_active(0);
+                end
+                `uvm_info(get_type_name(),
+                    "Phase jump recovery: sequencers resumed", UVM_LOW)
             end
-            `uvm_info(get_type_name(), "Phase jump recovery: sequencers resumed", UVM_LOW)
         end
     endfunction
 
     task request_phase_jump(uvm_phase current_phase, uvm_phase target_phase);
+        bit drain_succeeded;
+
         if (rst_handler != null && rst_handler.is_in_reset) begin
             `uvm_warning(get_type_name(), "Phase jump blocked: reset is active")
             return;
@@ -57,43 +66,111 @@ class axis_phase_controller #(
             $sformatf("Phase jump requested: %s -> %s", current_phase.get_name(), target_phase.get_name()),
             UVM_LOW)
 
+        // The caller may have dropped its objection before requesting the
+        // jump.  A real drain can span clock cycles, so keep the current phase
+        // alive until the drain decision and jump are ready to execute.
+        current_phase.raise_objection(this, "Draining AXIS transfers before phase jump");
+
         foreach (agents[i]) begin
             if (agents[i].sqr != null)
                 agents[i].sqr.set_reset_active(1);
         end
 
-        drain_in_flight();
+        drain_in_flight(drain_succeeded);
+
+        if (!drain_succeeded) begin
+            if (rst_handler == null || !rst_handler.is_in_reset) begin
+                foreach (agents[i]) begin
+                    if (agents[i].sqr != null)
+                        agents[i].sqr.set_reset_active(0);
+                end
+            end
+            `uvm_info(get_type_name(),
+                $sformatf("Phase jump cancelled: drain deadline reached after %0d cycles",
+                          drain_timeout), UVM_LOW)
+            current_phase.drop_objection(this,
+                "AXIS phase-jump cancelled at drain deadline");
+            return;
+        end
+
+        // Reset may begin while a real bus transfer is draining.  Keep the
+        // sequencer freeze and cancel this request instead of jumping.
+        if (rst_handler != null && rst_handler.is_in_reset) begin
+            `uvm_info(get_type_name(),
+                "Phase jump cancelled: reset asserted during drain", UVM_LOW)
+            current_phase.drop_objection(this,
+                "AXIS phase-jump cancelled during reset overlap");
+            return;
+        end
 
         phase_jump_pending = 1;
+        current_phase.drop_objection(this, "AXIS phase-jump drain complete");
         current_phase.jump(target_phase);
-        // Code after jump() will NOT execute — recovery happens in phase_started()
+        // Recovery belongs in phase_started(), at the target phase boundary.
     endtask
 
-    protected task drain_in_flight();
+    protected task drain_in_flight(output bit drain_succeeded);
         int unsigned timeout_count = 0;
         bit all_drained = 0;
+        axis_sequencer active_sqr;
 
         `uvm_info(get_type_name(), "Draining in-flight transactions...", UVM_MEDIUM)
 
-        while (!all_drained && timeout_count < drain_timeout) begin
+        // Let any sequence already crossing its should_stop()/start_item()
+        // boundary become either pending or driver-owned before the first
+        // drain decision.  reset_active prevents subsequent base-sequence
+        // items from being generated.
+        @(vif.monitor_cb);
+        // Clocking-block-driven drivers wake in the same time slot.  A
+        // zero-time re-inactive settle lets their item_done()/ownership
+        // release complete before this edge is counted and sampled.
+        #0;
+        timeout_count++;
+
+        forever begin
             all_drained = 1;
+            active_sqr = null;
             foreach (agents[i]) begin
-                if (agents[i].sqr != null && agents[i].sqr.has_do_available()) begin
+                if (agents[i].sqr != null &&
+                    (agents[i].sqr.has_do_available() ||
+                     agents[i].sqr.get_driver_owned_count() != 0)) begin
                     all_drained = 0;
-                    break;
+                    if (agents[i].sqr.get_driver_owned_count() != 0) begin
+                        active_sqr = agents[i].sqr;
+                        break;
+                    end
                 end
             end
-            if (!all_drained) begin
-                @(posedge vif.aclk);
+
+            // Fresh ownership/pending resample happens before the deadline
+            // decision, including on the final allowed clock edge.
+            if (all_drained) begin
+                drain_succeeded = 1;
+                `uvm_info(get_type_name(),
+                    "All in-flight transactions drained", UVM_MEDIUM)
+                return;
+            end
+            if (timeout_count >= drain_timeout) begin
+                drain_succeeded = 0;
+                return;
+            end
+
+            if (active_sqr != null) begin
+                fork
+                    active_sqr.wait_for_driver_idle();
+                    begin
+                        @(vif.monitor_cb);
+                        #0;
+                        timeout_count++;
+                    end
+                join_any
+                disable fork;
+            end else begin
+                @(vif.monitor_cb);
+                #0;
                 timeout_count++;
             end
         end
-
-        if (!all_drained)
-            `uvm_warning(get_type_name(),
-                $sformatf("Drain timeout after %0d cycles, forcing phase jump", drain_timeout))
-        else
-            `uvm_info(get_type_name(), "All in-flight transactions drained", UVM_MEDIUM)
     endtask
 
 endclass

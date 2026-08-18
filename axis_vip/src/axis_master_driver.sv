@@ -16,6 +16,7 @@ class axis_master_driver #(
     vif_t vif;
     axis_config cfg;
     axis_bandwidth_controller bw_ctrl;
+    axis_sequencer sqr;
     bit in_reset = 0;
 
     function new(string name, uvm_component parent);
@@ -39,14 +40,22 @@ class axis_master_driver #(
                 continue;
             end
             seq_item_port.get_next_item(req);
+            if (sqr != null)
+                sqr.begin_driver_item();
             if (in_reset) begin
-                seq_item_port.item_done();
+                complete_driver_item();
                 continue;
             end
             drive_transfer(req);
-            seq_item_port.item_done();
+            complete_driver_item();
         end
     endtask
+
+    protected function void complete_driver_item();
+        seq_item_port.item_done();
+        if (sqr != null)
+            sqr.end_driver_item();
+    endfunction
 
     // Hold tvalid low until reset is truly released, then return aligned to a
     // master_cb edge. Steady-state (out of reset) the loop body never executes,

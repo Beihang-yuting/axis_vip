@@ -6,8 +6,12 @@ class axis_sequencer extends uvm_sequencer #(axis_transfer);
     bit reset_active = 0;
     string last_seq_type_name;
 
+    protected int unsigned driver_owned_items = 0;
+    protected uvm_event driver_idle_evt;
+
     function new(string name, uvm_component parent);
         super.new(name, parent);
+        driver_idle_evt = new("driver_idle_evt");
     endfunction
 
     function void build_phase(uvm_phase phase);
@@ -24,6 +28,34 @@ class axis_sequencer extends uvm_sequencer #(axis_transfer);
     function void set_reset_active(bit active);
         reset_active = active;
     endfunction
+
+    // Driver ownership starts when get_next_item() returns and ends only after
+    // item_done().  has_do_available() does not cover this interval.
+    function void begin_driver_item();
+        if (driver_owned_items == 0)
+            driver_idle_evt.reset();
+        driver_owned_items++;
+    endfunction
+
+    function void end_driver_item();
+        if (driver_owned_items == 0) begin
+            `uvm_fatal(get_type_name(),
+                "Driver item ownership underflow")
+            return;
+        end
+        driver_owned_items--;
+        if (driver_owned_items == 0)
+            driver_idle_evt.trigger();
+    endfunction
+
+    function int unsigned get_driver_owned_count();
+        return driver_owned_items;
+    endfunction
+
+    task wait_for_driver_idle();
+        while (driver_owned_items != 0)
+            driver_idle_evt.wait_ptrigger();
+    endtask
 
     task restart_last_sequence();
         uvm_object_wrapper seq_type;

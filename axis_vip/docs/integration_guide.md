@@ -667,6 +667,21 @@ rst_vseq.start(null);
 env.phase_ctrl.request_phase_jump(phase, phase);   // 跳回自身，触发 drain
 ```
 
+controller 会先阻止内置 sequence 继续生成新 item，并同时等待 sequencer
+队列和已被 driver 取走的 item 清零，再执行 jump。`axis_sequencer` 用
+`begin_driver_item()` / `end_driver_item()` 记录从 `get_next_item()` 返回到
+`item_done()` 完成之间的 ownership，并提供 `get_driver_owned_count()` 与
+`wait_for_driver_idle()` 查询 / 同步接口。内置 master/slave driver 已自动配对
+调用；若自定义 driver 仍连接 `axis_sequencer`，必须在同一 ownership 边界成对
+调用，且复位 / abort 分支也必须恰好 release 一次，否则 phase drain 无法准确
+判断总线传输是否完成。
+
+`drain_timeout` 是 phase-jump 请求的硬 deadline。deadline 边沿会先重新采样
+pending / ownership；若仍未清零，本次请求取消且不会在 item 后续完成时自动
+jump。非复位场景会恢复 sequencer，复位已生效则保持 freeze 并交给 reset
+recovery 恢复。需要在取消返回后继续留在当前 phase 的 caller，应在调用期间
+保留自己的 phase objection；重新 jump 必须显式发起新的请求。
+
 ---
 
 ## 10. 协议检查与错误注入（举例）

@@ -16,6 +16,7 @@ class axis_slave_driver #(
     vif_t vif;
     axis_config cfg;
     axis_bandwidth_controller bw_ctrl;
+    axis_sequencer sqr;
     bit in_reset = 0;
 
     protected bit valid_seen = 0;
@@ -128,14 +129,16 @@ class axis_slave_driver #(
 
     protected task drive_ready_from_seq();
         seq_item_port.get_next_item(req);
+        if (sqr != null)
+            sqr.begin_driver_item();
         if (in_reset) begin
-            seq_item_port.item_done();
+            complete_driver_item();
             return;
         end
         // req.delay = number of cycles to hold tready low before asserting
         repeat (req.delay) begin
             if (in_reset) begin
-                seq_item_port.item_done();
+                complete_driver_item();
                 return;
             end
             vif.slave_cb.tready <= 1'b0;
@@ -146,13 +149,19 @@ class axis_slave_driver #(
         @(vif.slave_cb);
         while (!(vif.slave_cb.tvalid && vif.tready)) begin
             if (in_reset) begin
-                seq_item_port.item_done();
+                complete_driver_item();
                 return;
             end
             @(vif.slave_cb);
         end
-        seq_item_port.item_done();
+        complete_driver_item();
     endtask
+
+    protected function void complete_driver_item();
+        seq_item_port.item_done();
+        if (sqr != null)
+            sqr.end_driver_item();
+    endfunction
 
     function void drive_reset_values();
         vif.slave_cb.tready <= 1'b0;

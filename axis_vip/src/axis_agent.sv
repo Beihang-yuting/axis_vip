@@ -51,9 +51,11 @@ class axis_agent #(
             if (cfg.agent_mode == AXIS_MASTER && m_drv != null) begin
                 m_drv.seq_item_port.connect(sqr.seq_item_export);
                 m_drv.bw_ctrl = bw_ctrl;
+                m_drv.sqr = sqr;
             end else if (cfg.agent_mode == AXIS_SLAVE && s_drv != null) begin
                 s_drv.seq_item_port.connect(sqr.seq_item_export);
                 s_drv.bw_ctrl = bw_ctrl;
+                s_drv.sqr = sqr;
             end
             rst_listener.sqr     = sqr;
             rst_listener.bw_ctrl = bw_ctrl;

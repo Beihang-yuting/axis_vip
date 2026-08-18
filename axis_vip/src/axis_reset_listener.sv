@@ -31,6 +31,10 @@ class axis_reset_listener extends uvm_component;
 
             if (sqr != null) begin
                 sqr.set_reset_active(1);
+                // stop_sequences() invalidates the sequencer's outstanding
+                // request.  Let the driver finish its reset-abort item_done()
+                // first, then discard only work that is still pending.
+                sqr.wait_for_driver_idle();
                 sqr.flush_pending();
             end
 
