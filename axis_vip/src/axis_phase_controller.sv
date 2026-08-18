@@ -66,7 +66,7 @@ class axis_phase_controller #(
 
         phase_jump_pending = 1;
         current_phase.jump(target_phase);
-        // Code after jump() will NOT execute — recovery happens in run_phase
+        // Code after jump() will NOT execute — recovery happens in phase_started()
     endtask
 
     protected task drain_in_flight();

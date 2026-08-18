@@ -133,7 +133,7 @@ class axis_phase_jump_test extends axis_base_test;
             end
 
             default: begin
-                `uvm_fatal(get_type_name(), "Unexpected extra run-phase entry")
+                `uvm_fatal(get_type_name(), "Unexpected extra main-phase entry")
             end
         endcase
     endtask
