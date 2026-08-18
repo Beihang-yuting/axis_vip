@@ -35,8 +35,8 @@ class axis_phase_controller #(
             `uvm_fatal("NOVIF", "Virtual interface not found in config_db")
     endfunction
 
-    task run_phase(uvm_phase phase);
-        // Phase jump recovery: resume sequencers after jump
+    function void phase_started(uvm_phase phase);
+        super.phase_started(phase);
         if (phase_jump_pending) begin
             phase_jump_pending = 0;
             foreach (agents[i]) begin
@@ -45,7 +45,7 @@ class axis_phase_controller #(
             end
             `uvm_info(get_type_name(), "Phase jump recovery: sequencers resumed", UVM_LOW)
         end
-    endtask
+    endfunction
 
     task request_phase_jump(uvm_phase current_phase, uvm_phase target_phase);
         if (rst_handler != null && rst_handler.is_in_reset) begin
