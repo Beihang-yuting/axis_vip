@@ -16,7 +16,7 @@
 
 - **编辑**在本地 `/home/ubuntu/ryan/axis_work` 与 xilinx_pcie 工作副本 `/tmp/xilinx_pcie`（权威工程在 `59:/home/ubuntu/ryan/xilinx_pcie`）。
 - **编译/回归**在 59 上跑（本地无 VCS/license）。
-- **同步脚本**（每次验证前把本地改动推到 59）。`sshpass` 不可用，用仓库已有 pty 脚本 `/tmp/ssh_pull.py`（密码 `ubuntu`）。建推送 helper：
+- SSH authentication must use pre-provisioned keys or an SSH agent; password authentication is not supported.
 
 ```bash
 cat > /tmp/rpush.sh << 'EOF'
@@ -39,7 +39,7 @@ while True:
         except OSError: break
         if not c: break
         buf+=c; sys.stdout.write(c.decode('utf-8','replace')); sys.stdout.flush()
-        if not sent and b"password" in buf.lower(): os.write(fd,b"ubuntu\n"); sent=True
+        # Authentication is provided by pre-provisioned SSH keys or an SSH agent.
         if b"(yes/no" in buf: os.write(fd,b"yes\n")
     try:
         wp,_=os.waitpid(pid,os.WNOHANG)
