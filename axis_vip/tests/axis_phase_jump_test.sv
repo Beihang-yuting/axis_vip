@@ -44,19 +44,22 @@ class axis_phase_unguarded_seq extends uvm_sequence #(axis_transfer);
         axis_sequencer sqr;
         axis_transfer tr;
 
-        tr = axis_transfer::type_id::create("tr");
-        if ($cast(sqr, m_sequencer))
-            tr.cfg = sqr.cfg;
+        if (!$cast(sqr, m_sequencer))
+            `uvm_fatal("AXIS_PHASE_ADMISSION",
+                "Unguarded probe requires axis_sequencer")
+        tr = axis_transfer::type_id::create("unguarded_tr");
+        tr.cfg = sqr.cfg;
 
         entered_start_item = 1;
         start_item(tr);
-        if (!tr.randomize() with {
-            tid == 5;
-            tdest == 5;
-            tlast == 1;
-            delay == 0;
-        })
-            `uvm_fatal(get_type_name(), "Probe randomization failed")
+        tr.tdata = 32'had00_0001;
+        tr.tkeep = '1;
+        tr.tstrb = '1;
+        tr.tlast = 1;
+        tr.tid = 4'ha;
+        tr.tdest = 4'ha;
+        tr.tuser = '0;
+        tr.delay = 0;
         finish_item(tr);
         completed = 1;
     endtask
@@ -165,14 +168,15 @@ class axis_phase_jump_admission_freeze_test extends axis_base_test;
                 "Timed out waiting for probe to reach start_item")
 
         repeat (2) @(env.phase_ctrl.vif.monitor_cb);
+        #0;
         if (env.master_agent.sqr.has_do_available() == 1)
             `uvm_fatal("AXIS_PHASE_ADMISSION",
                 "post-freeze request entered sequencer arbitration")
         if (probe.completed != 0)
-            `uvm_fatal(get_type_name(),
+            `uvm_fatal("AXIS_PHASE_ADMISSION",
                 "Post-freeze probe completed while the original item was active")
         if (env.master_agent.sqr.get_driver_owned_count() != 1)
-            `uvm_fatal(get_type_name(),
+            `uvm_fatal("AXIS_PHASE_ADMISSION",
                 "Original driver-owned item was not preserved during admission probe")
 
         freeze_probe_blocked = 1;
@@ -199,6 +203,7 @@ class axis_phase_jump_admission_freeze_test extends axis_base_test;
         case (main_phase_entries)
             1: begin
                 wait_for_agents_ready(1);
+                env.phase_ctrl.drain_timeout = 100;
                 packet = axis_packet_seq::type_id::create("packet");
                 if (!packet.randomize() with {
                     packet_length == 2;
