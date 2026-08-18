@@ -26,6 +26,245 @@ class axis_phase_jump_scoreboard extends axis_scoreboard;
 
 endclass
 
+// Test-only probe which intentionally bypasses axis_base_seq.should_stop().
+// A phase-drain freeze must close sequencer admission itself, not rely on
+// cooperative checks in built-in sequences.
+class axis_phase_unguarded_seq extends uvm_sequence #(axis_transfer);
+
+    `uvm_object_utils(axis_phase_unguarded_seq)
+
+    bit entered_start_item;
+    bit completed;
+
+    function new(string name = "axis_phase_unguarded_seq");
+        super.new(name);
+    endfunction
+
+    task body();
+        axis_sequencer sqr;
+        axis_transfer tr;
+
+        tr = axis_transfer::type_id::create("tr");
+        if ($cast(sqr, m_sequencer))
+            tr.cfg = sqr.cfg;
+
+        entered_start_item = 1;
+        start_item(tr);
+        if (!tr.randomize() with {
+            tid == 5;
+            tdest == 5;
+            tlast == 1;
+            delay == 0;
+        })
+            `uvm_fatal(get_type_name(), "Probe randomization failed")
+        finish_item(tr);
+        completed = 1;
+    endtask
+
+endclass
+
+class axis_phase_jump_admission_freeze_test extends axis_base_test;
+
+    `uvm_component_utils(axis_phase_jump_admission_freeze_test)
+
+    axis_phase_unguarded_seq probe;
+    bit freeze_observed;
+    bit freeze_probe_blocked;
+    bit phase_jump_recovered;
+    bit probe_armed;
+    int unsigned main_phase_entries;
+
+    function new(string name, uvm_component parent);
+        super.new(name, parent);
+    endfunction
+
+    function void build_phase(uvm_phase phase);
+        axis_scoreboard::type_id::set_type_override(
+            axis_phase_jump_scoreboard::get_type());
+        super.build_phase(phase);
+        slave_cfg.ready_gen_mode  = READY_AFTER_VALID;
+        slave_cfg.ready_delay     = 20;
+        slave_cfg.ready_delay_min = 20;
+        slave_cfg.ready_delay_max = 20;
+    endfunction
+
+    protected task wait_for_agents_ready(bit require_initial_reset);
+        bit saw_reset = !require_initial_reset;
+        int unsigned ready_cycles;
+
+        repeat (100) begin
+            @(env.phase_ctrl.vif.monitor_cb);
+            if (env.rst_handler.is_in_reset)
+                saw_reset = 1;
+            if (saw_reset && !env.rst_handler.is_in_reset &&
+                !env.master_agent.sqr.reset_active &&
+                !env.slave_agent.sqr.reset_active)
+                ready_cycles++;
+            else
+                ready_cycles = 0;
+            if (ready_cycles == 2)
+                return;
+        end
+        `uvm_fatal(get_type_name(),
+            "Timed out waiting for agents to become ready")
+    endtask
+
+    protected task wait_for_owned_tlast_stall();
+        repeat (1000) begin
+            @(env.phase_ctrl.vif.monitor_cb);
+            if (env.phase_ctrl.vif.monitor_cb.tvalid &&
+                env.phase_ctrl.vif.monitor_cb.tlast &&
+                !env.phase_ctrl.vif.monitor_cb.tready &&
+                env.master_agent.sqr.get_driver_owned_count() == 1)
+                return;
+        end
+        `uvm_fatal(get_type_name(),
+            "Timed out waiting for driver-owned backpressured TLAST")
+    endtask
+
+    protected task wait_for_scoreboard_match();
+        repeat (1000) begin
+            @(env.phase_ctrl.vif.monitor_cb);
+            if (env.sb.match_count == 1)
+                return;
+        end
+        `uvm_fatal(get_type_name(),
+            "Timed out waiting for the original packet scoreboard match")
+    endtask
+
+    protected task run_admission_probe();
+        bit saw_freeze;
+        bit saw_start_item;
+
+        repeat (100) begin
+            @(env.phase_ctrl.vif.monitor_cb);
+            if (env.master_agent.sqr.reset_active) begin
+                saw_freeze = 1;
+                break;
+            end
+        end
+        if (!saw_freeze)
+            `uvm_fatal(get_type_name(),
+                "Timed out waiting for phase-drain freeze")
+        freeze_observed = 1;
+
+        probe = axis_phase_unguarded_seq::type_id::create("probe");
+        fork
+            probe.start(env.master_agent.sqr);
+        join_none
+
+        repeat (10) begin
+            if (probe.entered_start_item) begin
+                saw_start_item = 1;
+                break;
+            end
+            @(env.phase_ctrl.vif.monitor_cb);
+        end
+        if (!saw_start_item)
+            `uvm_fatal(get_type_name(),
+                "Timed out waiting for probe to reach start_item")
+
+        repeat (2) @(env.phase_ctrl.vif.monitor_cb);
+        if (env.master_agent.sqr.has_do_available() == 1)
+            `uvm_fatal("AXIS_PHASE_ADMISSION",
+                "post-freeze request entered sequencer arbitration")
+        if (probe.completed != 0)
+            `uvm_fatal(get_type_name(),
+                "Post-freeze probe completed while the original item was active")
+        if (env.master_agent.sqr.get_driver_owned_count() != 1)
+            `uvm_fatal(get_type_name(),
+                "Original driver-owned item was not preserved during admission probe")
+
+        freeze_probe_blocked = 1;
+        probe.kill();
+    endtask
+
+    task run_phase(uvm_phase phase);
+        repeat (10000) begin
+            @(env.phase_ctrl.vif.monitor_cb);
+            if (probe_armed) begin
+                run_admission_probe();
+                return;
+            end
+        end
+        `uvm_fatal(get_type_name(),
+            "Timed out waiting for admission probe to be armed")
+    endtask
+
+    task main_phase(uvm_phase phase);
+        axis_packet_seq packet;
+
+        phase.raise_objection(this);
+        main_phase_entries++;
+        case (main_phase_entries)
+            1: begin
+                wait_for_agents_ready(1);
+                packet = axis_packet_seq::type_id::create("packet");
+                if (!packet.randomize() with {
+                    packet_length == 2;
+                    inter_beat_delay == 0;
+                    packet_tid == 4;
+                    packet_tdest == 4;
+                    data_pattern == 1;
+                })
+                    `uvm_fatal(get_type_name(), "Packet randomization failed")
+                fork
+                    packet.start(env.master_agent.sqr);
+                join_none
+
+                wait_for_owned_tlast_stall();
+                probe_armed = 1;
+
+                phase.drop_objection(this);
+                env.phase_ctrl.request_phase_jump(phase, phase);
+                forever @(env.phase_ctrl.vif.monitor_cb);
+            end
+
+            2: begin
+                uvm_wait_for_nba_region();
+                wait_for_agents_ready(0);
+                wait_for_scoreboard_match();
+                phase_jump_recovered = 1;
+                phase.drop_objection(this);
+            end
+
+            default:
+                `uvm_fatal(get_type_name(),
+                    "Unexpected extra main-phase entry")
+        endcase
+    endtask
+
+    function void report_phase(uvm_phase phase);
+        axis_phase_jump_scoreboard phase_sb;
+        int unsigned master_pending;
+        int unsigned slave_pending;
+
+        super.report_phase(phase);
+        if (!$cast(phase_sb, env.sb)) begin
+            `uvm_error(get_type_name(),
+                "Admission-freeze scoreboard override is missing")
+            return;
+        end
+
+        master_pending = phase_sb.master_pending_count();
+        slave_pending = phase_sb.slave_pending_count();
+        if (freeze_observed && freeze_probe_blocked &&
+            phase_jump_recovered && main_phase_entries == 2 &&
+            phase_sb.match_count == 1 && phase_sb.mismatch_count == 0 &&
+            master_pending == 0 && slave_pending == 0)
+            `uvm_info(get_type_name(),
+                "AXIS_PHASE_ADMISSION_FREEZE_PASS matches=1", UVM_NONE)
+        else
+            `uvm_error(get_type_name(), $sformatf(
+                "Admission-freeze oracle failed: freeze=%0b blocked=%0b recovered=%0b entries=%0d matches=%0d mismatches=%0d master_pending=%0d slave_pending=%0d",
+                freeze_observed, freeze_probe_blocked,
+                phase_jump_recovered, main_phase_entries,
+                phase_sb.match_count, phase_sb.mismatch_count,
+                master_pending, slave_pending))
+    endfunction
+
+endclass
+
 class axis_phase_jump_test extends axis_base_test;
 
     `uvm_component_utils(axis_phase_jump_test)
