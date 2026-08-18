@@ -13,6 +13,7 @@ class axis_idle_seq extends axis_base_seq;
         axis_transfer tr;
         tr = axis_transfer::type_id::create("idle_tr");
         tr.cfg = cfg;
+        if (should_stop()) return;
         start_item(tr);
         tr.tdata = 0;
         tr.tkeep = 0;

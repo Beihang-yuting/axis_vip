@@ -35,8 +35,20 @@ class axis_phase_controller #(
             `uvm_fatal("NOVIF", "Virtual interface not found in config_db")
     endfunction
 
+    protected function void release_phase_freeze(bit preserve_reset);
+        foreach (agents[i]) begin
+            if (agents[i].sqr == null)
+                continue;
+            if (preserve_reset)
+                agents[i].sqr.set_reset_active(1);
+            agents[i].sqr.set_phase_drain_active(0);
+        end
+    endfunction
+
     function void phase_started(uvm_phase phase);
         super.phase_started(phase);
+        release_phase_freeze(
+            rst_handler != null && rst_handler.is_in_reset);
         if (phase_jump_pending) begin
             phase_jump_pending = 0;
             if (rst_handler != null && rst_handler.is_in_reset) begin
@@ -44,10 +56,6 @@ class axis_phase_controller #(
                     "Phase jump recovery: preserving sequencer freeze during reset",
                     UVM_LOW)
             end else begin
-                foreach (agents[i]) begin
-                    if (agents[i].sqr != null)
-                        agents[i].sqr.set_reset_active(0);
-                end
                 `uvm_info(get_type_name(),
                     "Phase jump recovery: sequencers resumed", UVM_LOW)
             end
@@ -73,18 +81,14 @@ class axis_phase_controller #(
 
         foreach (agents[i]) begin
             if (agents[i].sqr != null)
-                agents[i].sqr.set_reset_active(1);
+                agents[i].sqr.set_phase_drain_active(1);
         end
 
         drain_in_flight(drain_succeeded);
 
         if (!drain_succeeded) begin
-            if (rst_handler == null || !rst_handler.is_in_reset) begin
-                foreach (agents[i]) begin
-                    if (agents[i].sqr != null)
-                        agents[i].sqr.set_reset_active(0);
-                end
-            end
+            release_phase_freeze(
+                rst_handler != null && rst_handler.is_in_reset);
             `uvm_info(get_type_name(),
                 $sformatf("Phase jump cancelled: drain deadline reached after %0d cycles",
                           drain_timeout), UVM_LOW)
@@ -96,6 +100,7 @@ class axis_phase_controller #(
         // Reset may begin while a real bus transfer is draining.  Keep the
         // sequencer freeze and cancel this request instead of jumping.
         if (rst_handler != null && rst_handler.is_in_reset) begin
+            release_phase_freeze(1);
             `uvm_info(get_type_name(),
                 "Phase jump cancelled: reset asserted during drain", UVM_LOW)
             current_phase.drop_objection(this,
@@ -116,10 +121,10 @@ class axis_phase_controller #(
 
         `uvm_info(get_type_name(), "Draining in-flight transactions...", UVM_MEDIUM)
 
-        // Let any sequence already crossing its should_stop()/start_item()
-        // boundary become either pending or driver-owned before the first
-        // drain decision.  reset_active prevents subsequent base-sequence
-        // items from being generated.
+        // Requests that crossed the authoritative wait_for_grant() gate before
+        // freeze may still become pending or driver-owned and must drain.
+        // Standard post-freeze requests wait outside sequencer arbitration.
+        // Allow the pre-freeze boundary crossing to settle before sampling.
         @(vif.monitor_cb);
         // Clocking-block-driven drivers wake in the same time slot.  A
         // zero-time re-inactive settle lets their item_done()/ownership

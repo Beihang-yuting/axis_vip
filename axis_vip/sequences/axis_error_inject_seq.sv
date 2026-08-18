@@ -22,6 +22,7 @@ class axis_error_inject_seq extends axis_base_seq;
                 // TSTRB=1 where TKEEP=0 violates AXI-Stream spec
                 tr = axis_transfer::type_id::create("err_tr");
                 tr.cfg = cfg;
+                if (should_stop()) return;
                 start_item(tr);
                 if (!tr.randomize() with { tlast == 1; })
                     `uvm_error(get_type_name(), "Randomization failed")
@@ -35,6 +36,7 @@ class axis_error_inject_seq extends axis_base_seq;
                 // Beat 1: tlast=0, tid=A
                 tr = axis_transfer::type_id::create("err_tr1");
                 tr.cfg = cfg;
+                if (should_stop()) return;
                 start_item(tr);
                 if (!tr.randomize() with { tlast == 0; })
                     `uvm_error(get_type_name(), "Randomization failed")
@@ -44,6 +46,7 @@ class axis_error_inject_seq extends axis_base_seq;
                 // Beat 2: tlast=1, tid=B (different from beat 1)
                 tr = axis_transfer::type_id::create("err_tr2");
                 tr.cfg = cfg;
+                if (should_stop()) return;
                 start_item(tr);
                 if (!tr.randomize() with { tlast == 1; })
                     `uvm_error(get_type_name(), "Randomization failed")
@@ -55,6 +58,7 @@ class axis_error_inject_seq extends axis_base_seq;
                 // All bytes null-qualified: tkeep=0, tstrb=0
                 tr = axis_transfer::type_id::create("err_tr");
                 tr.cfg = cfg;
+                if (should_stop()) return;
                 start_item(tr);
                 if (!tr.randomize() with { tlast == 1; })
                     `uvm_error(get_type_name(), "Randomization failed")

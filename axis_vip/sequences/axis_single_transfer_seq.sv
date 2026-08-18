@@ -22,6 +22,7 @@ class axis_single_transfer_seq extends axis_base_seq;
         axis_transfer tr;
         tr = axis_transfer::type_id::create("tr");
         tr.cfg = cfg;
+        if (should_stop()) return;
         start_item(tr);
         tr.tdata = data;
         tr.tstrb = strb;

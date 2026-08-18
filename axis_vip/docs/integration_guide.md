@@ -667,8 +667,18 @@ rst_vseq.start(null);
 env.phase_ctrl.request_phase_jump(phase, phase);   // 跳回自身，触发 drain
 ```
 
-controller 会先阻止内置 sequence 继续生成新 item，并同时等待 sequencer
-队列和已被 driver 取走的 item 清零，再执行 jump。`axis_sequencer` 用
+controller 会先冻结新 item 的 admission，并同时等待 sequencer 队列和已被
+driver 取走的 item 清零，再执行 jump。`axis_sequencer::wait_for_grant()` 是
+custom sequence 使用标准 UVM `start_item()` API 时的权威 pre-arbitration gate：
+freeze 前已经越过 gate、进入 pending 或已被 driver ownership 接收的 item 会继续
+drain；freeze 后发起的请求会在 sequencer arbitration 之外等待 recovery。
+
+reset freeze 与 phase-drain freeze 是两个独立 reason；公开的 `reset_active` 是为旧
+sequence 保留的兼容 aggregate view，值为两个 reason 的 OR。即使 sequencer gate
+能够强制阻止 admission，custom sequence 仍应在每个 item 的 `start_item()` 前调用
+`should_stop()`，这样 freeze 到来时可以及时返回，而不是一直等待 recovery。
+
+`axis_sequencer` 用
 `begin_driver_item()` / `end_driver_item()` 记录从 `get_next_item()` 返回到
 `item_done()` 完成之间的 ownership，并提供 `get_driver_owned_count()` 与
 `wait_for_driver_idle()` 查询 / 同步接口。内置 master/slave driver 已自动配对
